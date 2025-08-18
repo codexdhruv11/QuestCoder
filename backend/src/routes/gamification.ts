@@ -1,0 +1,263 @@
+import { Router, Request, Response } from 'express'
+import { authenticateToken } from '@/middleware/auth'
+import GamificationService from '@/services/gamificationService'
+import LeaderboardService from '@/services/leaderboardService'
+import { logger } from '@/utils/logger'
+import mongoose from 'mongoose'
+
+const router = Router()
+
+// Apply authentication middleware to all routes
+router.use(authenticateToken)
+
+/**
+ * GET /gamification/profile
+ * Get user's gamification profile (XP, level, badges)
+ */
+router.get('/profile', async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const profile = await GamificationService.getUserGamificationStats(userId)
+    
+    res.json({
+      success: true,
+      data: profile
+    })
+  } catch (error) {
+    logger.error('Error getting gamification profile:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get gamification profile'
+    })
+  }
+})
+
+/**
+ * GET /gamification/badges
+ * Get available badges and user progress
+ */
+router.get('/badges', async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const { category } = req.query
+    
+    const [availableBadges, userBadgeProgress] = await Promise.all([
+      GamificationService.getAvailableBadges(category as string),
+      GamificationService.getUserBadgeProgress(userId)
+    ])
+    
+    res.json({
+      success: true,
+      data: {
+        available: availableBadges,
+        progress: userBadgeProgress
+      }
+    })
+  } catch (error) {
+    logger.error('Error getting badges:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get badges'
+    })
+  }
+})
+
+/**
+ * GET /gamification/leaderboard
+ * Get leaderboard rankings
+ */
+router.get('/leaderboard', async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const { 
+      type = 'xp', 
+      timeframe = 'all', 
+      limit = '50', 
+      offset = '0' 
+    } = req.query
+
+    const validTypes = ['xp', 'problems', 'streak']
+    if (!validTypes.includes(type as string)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid leaderboard type. Must be xp, problems, or streak'
+      })
+    }
+
+    const validTimeframes = ['all', 'monthly', 'weekly', 'daily']
+    if (!validTimeframes.includes(timeframe as string)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid timeframe. Must be all, monthly, weekly, or daily'
+      })
+    }
+
+    const limitNumber = parseInt(limit as string)
+    const offsetNumber = parseInt(offset as string)
+
+    if (isNaN(limitNumber) || limitNumber < 1 || limitNumber > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid limit. Must be between 1 and 100'
+      })
+    }
+
+    if (isNaN(offsetNumber) || offsetNumber < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid offset. Must be 0 or greater'
+      })
+    }
+
+    const filters = {
+      timeframe: timeframe as any,
+      limit: limitNumber,
+      offset: offsetNumber
+    }
+
+    let leaderboard
+    switch (type) {
+      case 'xp':
+        leaderboard = await LeaderboardService.getXpLeaderboard(filters, userId)
+        break
+      case 'problems':
+        leaderboard = await LeaderboardService.getProblemsLeaderboard(filters, userId)
+        break
+      case 'streak':
+        leaderboard = await LeaderboardService.getStreakLeaderboard(filters, userId)
+        break
+      default:
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid leaderboard type'
+        })
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        type,
+        timeframe,
+        ...leaderboard
+      }
+    })
+  } catch (error) {
+    logger.error('Error getting leaderboard:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get leaderboard'
+    })
+  }
+})
+
+/**
+ * GET /gamification/levels
+ * Get level progression information
+ */
+router.get('/levels', async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userStats = await GamificationService.getUserGamificationStats(userId)
+    
+    // Calculate level progression data
+    const currentLevel = userStats.currentLevel
+    const totalXp = userStats.totalXp
+    const xpProgress = userStats.xpProgress
+    
+    // Calculate next few levels
+    const levelData = []
+    for (let level = 1; level <= currentLevel + 5; level++) {
+      const xpRequired = GamificationService.calculateXpForLevel(level)
+      levelData.push({
+        level,
+        xpRequired,
+        isUnlocked: level <= currentLevel,
+        isCurrent: level === currentLevel
+      })
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        currentLevel,
+        totalXp,
+        xpProgress,
+        levelData,
+        levelHistory: userStats.levelHistory
+      }
+    })
+  } catch (error) {
+    logger.error('Error getting level information:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get level information'
+    })
+  }
+})
+
+/**
+ * GET /gamification/stats
+ * Get comprehensive gamification statistics
+ */
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    
+    const [userStats, badgeProgress, xpLeaderboard] = await Promise.all([
+      GamificationService.getUserGamificationStats(userId),
+      GamificationService.getUserBadgeProgress(userId),
+      LeaderboardService.getXpLeaderboard({ limit: 10 }, userId)
+    ])
+
+    // Calculate some additional stats
+    const unlockedBadgeCount = userStats.unlockedBadges.length
+    const totalBadgeCount = badgeProgress.length
+    const badgeCompletionRate = totalBadgeCount > 0 ? (unlockedBadgeCount / totalBadgeCount) * 100 : 0
+
+    res.json({
+      success: true,
+      data: {
+        profile: userStats,
+        badges: {
+          unlocked: unlockedBadgeCount,
+          total: totalBadgeCount,
+          completionRate: Math.round(badgeCompletionRate)
+        },
+        leaderboard: {
+          currentRank: xpLeaderboard.currentUserRank,
+          totalParticipants: xpLeaderboard.totalEntries
+        }
+      }
+    })
+  } catch (error) {
+    logger.error('Error getting gamification stats:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get gamification stats'
+    })
+  }
+})
+
+/**
+ * POST /gamification/initialize
+ * Initialize gamification for a user (mainly for testing or migration)
+ */
+router.post('/initialize', async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    await GamificationService.initializeUserGamification(userId)
+    
+    res.json({
+      success: true,
+      message: 'Gamification initialized successfully'
+    })
+  } catch (error) {
+    logger.error('Error initializing gamification:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to initialize gamification'
+    })
+  }
+})
+
+export default router
