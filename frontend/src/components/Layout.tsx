@@ -1,19 +1,33 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNotifications } from '@/hooks/useNotifications'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { XpProgressBar, CompactXpProgressBar } from '@/components/gamification/XpProgressBar'
+import { LevelIndicator } from '@/components/gamification/LevelIndicator'
 import { 
   LayoutDashboard, 
   Target, 
   User, 
   LogOut, 
   Menu,
-  Code2
+  Code2,
+  BarChart3,
+  Trophy,
+  Users,
+  Zap,
+  Bell
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { api } from '@/lib/api'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Patterns', href: '/patterns', icon: Target },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Leaderboards', href: '/leaderboards', icon: Trophy },
+  { name: 'Study Groups', href: '/study-groups', icon: Users },
+  { name: 'Challenges', href: '/challenges', icon: Zap },
   { name: 'Profile', href: '/profile', icon: User },
 ]
 
@@ -22,6 +36,24 @@ export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { unreadCount } = useNotifications()
+  const [userGamification, setUserGamification] = useState(null)
+
+  // Fetch user gamification data
+  useEffect(() => {
+    const fetchGamificationData = async () => {
+      try {
+        const response = await api.get('/gamification/profile')
+        setUserGamification(response.data)
+      } catch (error) {
+        console.error('Error fetching gamification data:', error)
+      }
+    }
+
+    if (user) {
+      fetchGamificationData()
+    }
+  }, [user])
 
   const handleLogout = async () => {
     try {
@@ -76,8 +108,28 @@ export default function Layout() {
           })}
         </nav>
 
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-3 mb-3">
+        <div className="p-4 border-t space-y-3">
+          {/* Gamification Info */}
+          {userGamification && (
+            <div className="space-y-2">
+              <XpProgressBar 
+                currentXp={userGamification.totalXp} 
+                level={userGamification.currentLevel}
+                className="h-2"
+              />
+              <div className="flex items-center justify-between">
+                <LevelIndicator 
+                  level={userGamification.currentLevel}
+                  variant="compact"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {userGamification.totalXp} XP
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
               <User className="h-4 w-4 text-primary" />
             </div>
@@ -101,19 +153,42 @@ export default function Layout() {
       {/* Main content */}
       <div className="md:pl-64">
         {/* Top bar */}
-        <header className="h-16 bg-card border-b flex items-center justify-between px-6 md:hidden">
+        <header className="h-16 bg-card border-b flex items-center justify-between px-6">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setSidebarOpen(true)}
+            className="md:hidden"
           >
             <Menu className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-2">
+          
+          <div className="flex items-center gap-2 md:hidden">
             <Code2 className="h-6 w-6 text-primary" />
             <h1 className="text-lg font-bold">QuestCoder</h1>
           </div>
-          <div /> {/* Spacer */}
+          
+          {/* Right side - Notifications and Gamification */}
+          <div className="flex items-center gap-4 ml-auto">
+            {/* Notifications */}
+            <Button variant="ghost" size="sm" className="relative">
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Badge>
+              )}
+            </Button>
+            
+            {/* Gamification (Desktop) */}
+            {userGamification && (
+              <CompactXpProgressBar 
+                currentXp={userGamification.totalXp} 
+                level={userGamification.currentLevel}
+                className="hidden md:flex"
+              />
+            )}
+          </div>
         </header>
 
         {/* Page content */}
