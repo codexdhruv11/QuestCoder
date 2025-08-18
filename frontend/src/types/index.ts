@@ -205,6 +205,169 @@ export interface WidgetConfig {
   refreshInterval: number
 }
 
+// Gamification types
+export interface UserGamification {
+  _id: string
+  userId: string
+  totalXp: number
+  currentLevel: number
+  unlockedBadges: string[]
+  lastXpGainedAt: string
+  levelHistory: LevelHistory[]
+}
+
+export interface Badge {
+  _id: string
+  name: string
+  description: string
+  icon: string
+  category: string
+  criteria: any
+  xpReward: number
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+  isActive: boolean
+}
+
+export interface LevelHistory {
+  level: number
+  achievedAt: string
+  totalXp: number
+}
+
+// Community types
+export interface StudyGroup {
+  _id: string
+  name: string
+  description: string
+  ownerId: string
+  members: GroupMember[]
+  isPrivate: boolean
+  inviteCode: string
+  targetPatterns: string[]
+  createdAt: string
+  updatedAt: string
+  isActive: boolean
+}
+
+export interface GroupMember {
+  userId: string
+  role: 'owner' | 'admin' | 'member'
+  joinedAt: string
+}
+
+export interface Challenge {
+  _id: string
+  title: string
+  description: string
+  creatorId: string
+  targetPatterns: string[]
+  difficulty: string
+  startDate: string
+  endDate: string
+  participants: ChallengeParticipant[]
+  prizes: string[]
+  isPublic: boolean
+  status: 'upcoming' | 'active' | 'completed'
+}
+
+export interface ChallengeParticipant {
+  userId: string
+  completedProblems: number
+  joinedAt: string
+}
+
+// Notification types
+export interface Notification {
+  _id: string
+  userId: string
+  type: 'badge_unlocked' | 'level_up' | 'challenge_invite' | 'group_invite'
+  title: string
+  message: string
+  data: any
+  isRead: boolean
+  createdAt: string
+  expiresAt?: string
+}
+
+// Analytics types
+export interface AnalyticsData {
+  performanceCharts: ChartData[]
+  patternAnalytics: PatternAnalytics[]
+  predictiveInsights: PredictiveInsight[]
+  performanceMetrics: PerformanceMetrics
+}
+
+export interface ChartData {
+  name: string
+  data: any[]
+  type: 'line' | 'bar' | 'pie' | 'radar'
+}
+
+export interface PatternAnalytics {
+  pattern: string
+  mastery: number
+  totalProblems: number
+  solvedProblems: number
+  averageTime: number
+  difficulty: string
+}
+
+export interface PredictiveInsight {
+  type: 'completion' | 'improvement' | 'recommendation'
+  title: string
+  description: string
+  confidence: number
+  estimatedDate?: string
+  suggestedActions?: string[]
+}
+
+export interface PerformanceMetrics {
+  solvingVelocity: number
+  accuracyRate: number
+  improvementTrend: number
+  consistencyScore: number
+  streakData: StreakMetrics
+}
+
+export interface StreakMetrics {
+  current: number
+  longest: number
+  weeklyAverage: number
+  monthlyPattern: number[]
+}
+
+// Leaderboard types
+export interface LeaderboardEntry {
+  userId: string
+  username: string
+  rank: number
+  totalXp: number
+  level: number
+  problemsSolved: number
+  currentStreak: number
+  badges: number
+}
+
+export interface Leaderboard {
+  type: 'global' | 'group' | 'weekly' | 'monthly'
+  entries: LeaderboardEntry[]
+  userRank?: number
+  totalParticipants: number
+}
+
+// Socket.IO event types
+export interface SocketEvent {
+  event: string
+  data: any
+}
+
+export interface NotificationData {
+  type: string
+  title: string
+  message: string
+  data?: any
+}
+
 // Theme and UI
 export type Theme = 'light' | 'dark' | 'system'
 

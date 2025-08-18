@@ -140,4 +140,148 @@ export const widgetsAPI = {
   }
 }
 
+// Analytics API endpoints
+export const analyticsAPI = {
+  getOverview: async () => {
+    const response = await api.get('/analytics/overview')
+    return response.data
+  },
+  
+  getProgress: async (timeRange?: string) => {
+    const response = await api.get('/analytics/progress', { 
+      params: timeRange ? { timeRange } : undefined 
+    })
+    return response.data
+  },
+  
+  getPatterns: async () => {
+    const response = await api.get('/analytics/patterns')
+    return response.data
+  },
+  
+  getPredictions: async () => {
+    const response = await api.get('/analytics/predictions')
+    return response.data
+  },
+  
+  getPerformance: async (timeRange?: string) => {
+    const response = await api.get('/analytics/performance', {
+      params: timeRange ? { timeRange } : undefined
+    })
+    return response.data
+  }
+}
+
+// Gamification API endpoints
+export const gamificationAPI = {
+  getProfile: async () => {
+    const response = await api.get('/gamification/profile')
+    return response.data
+  },
+  
+  getBadges: async () => {
+    const response = await api.get('/gamification/badges')
+    return response.data
+  },
+  
+  getLeaderboard: async (type?: string, groupId?: string) => {
+    const response = await api.get('/gamification/leaderboard', {
+      params: { type, groupId }
+    })
+    return response.data
+  },
+  
+  claimBadge: async (badgeId: string) => {
+    const response = await api.post(`/gamification/badges/${badgeId}/claim`)
+    return response.data
+  }
+}
+
+// Community API endpoints
+export const communityAPI = {
+  // Study Groups
+  getGroups: async (params?: { search?: string; filter?: string }) => {
+    const response = await api.get('/community/groups', { params })
+    return response.data
+  },
+  
+  createGroup: async (groupData: {
+    name: string
+    description: string
+    isPrivate: boolean
+    targetPatterns?: string[]
+  }) => {
+    const response = await api.post('/community/groups', groupData)
+    return response.data
+  },
+  
+  joinGroup: async (groupId: string) => {
+    const response = await api.post(`/community/groups/${groupId}/join`)
+    return response.data
+  },
+  
+  leaveGroup: async (groupId: string) => {
+    const response = await api.delete(`/community/groups/${groupId}/leave`)
+    return response.data
+  },
+  
+  // Challenges
+  getChallenges: async (params?: { search?: string; filter?: string }) => {
+    const response = await api.get('/community/challenges', { params })
+    return response.data
+  },
+  
+  createChallenge: async (challengeData: {
+    title: string
+    description: string
+    targetPatterns: string[]
+    difficulty: string
+    startDate: string
+    endDate: string
+    prizes?: string[]
+    isPublic: boolean
+  }) => {
+    const response = await api.post('/community/challenges', challengeData)
+    return response.data
+  },
+  
+  joinChallenge: async (challengeId: string) => {
+    const response = await api.post(`/community/challenges/${challengeId}/join`)
+    return response.data
+  },
+  
+  leaveChallenge: async (challengeId: string) => {
+    const response = await api.post(`/community/challenges/${challengeId}/leave`)
+    return response.data
+  }
+}
+
+// Notifications API endpoints
+export const notificationsAPI = {
+  getNotifications: async (params?: { 
+    limit?: number;
+    type?: string;
+    isRead?: boolean;
+  }) => {
+    const response = await api.get('/notifications', { params })
+    return response.data
+  },
+  
+  markAsRead: async (notificationId: string) => {
+    const response = await api.put(`/notifications/${notificationId}/read`)
+    return response.data
+  },
+  
+  markAllAsRead: async () => {
+    const response = await api.put('/notifications/read-all')
+    return response.data
+  },
+  
+  deleteNotification: async (notificationId: string) => {
+    const response = await api.delete(`/notifications/${notificationId}`)
+    return response.data
+  }
+}
+
+export { api }
 export default api

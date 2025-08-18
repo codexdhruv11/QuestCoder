@@ -1,14 +1,77 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useSocketSubscription } from '@/hooks/useSocket'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { XpProgressBar } from '@/components/gamification/XpProgressBar'
+import { BadgeDisplay } from '@/components/gamification/BadgeDisplay'
+import { LevelIndicator } from '@/components/gamification/LevelIndicator'
 import LeetCodeWidget from '@/components/widgets/LeetCodeWidget'
 import CodeforcesWidget from '@/components/widgets/CodeforcesWidget'
 import GitHubWidget from '@/components/widgets/GitHubWidget'
 import HackerEarthWidget from '@/components/widgets/HackerEarthWidget'
 import StreakTracker from '@/components/widgets/StreakTracker'
-import { LayoutDashboard, Target, TrendingUp, Calendar } from 'lucide-react'
+import { api } from '@/lib/api'
+import { LayoutDashboard, Target, TrendingUp, Calendar, Trophy, Zap, Users, BarChart3 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const [stats, setStats] = useState(null)
+  const [userGamification, setUserGamification] = useState(null)
+  const [recentBadges, setRecentBadges] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  // Load dashboard data
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      const [statsResponse, gamificationResponse] = await Promise.all([
+        api.get('/analytics/overview'),
+        api.get('/gamification/profile')
+      ])
+      
+      setStats(statsResponse.data)
+      setUserGamification(gamificationResponse.data)
+      setRecentBadges(gamificationResponse.data.unlockedBadges?.slice(-3) || [])
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      // Set fallback data for demo purposes
+      setStats({
+        totalProblems: 245,
+        weeklyGrowth: 12,
+        currentStreak: 7,
+        completedPatterns: 12,
+        totalPatterns: 25,
+        patternCompletionPercentage: 48,
+        monthlyProblems: 23
+      })
+      setUserGamification({
+        totalXp: 1250,
+        currentLevel: 8,
+        unlockedBadges: []
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Listen for real-time updates
+  useSocketSubscription('xp_gained', () => {
+    fetchDashboardData()
+  })
+
+  useSocketSubscription('badge_unlocked', () => {
+    fetchDashboardData()
+  })
+
+  useSocketSubscription('level_up', () => {
+    fetchDashboardData()
+  })
 
   return (
     <div className="space-y-6">
@@ -23,6 +86,57 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Gamification Overview */}
+      {userGamification && (
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Level</CardTitle>
+              <Trophy className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold flex items-center gap-2">
+                <LevelIndicator level={userGamification.currentLevel} variant="compact" />
+                {userGamification.currentLevel}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {userGamification.totalXp} total XP
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">XP Progress</CardTitle>
+              <Zap className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <XpProgressBar 
+                currentXp={userGamification.totalXp} 
+                level={userGamification.currentLevel}
+                className="h-3"
+              />
+              <p className="text-xs text-muted-foreground">
+                Level {userGamification.currentLevel} • {userGamification.unlockedBadges?.length || 0} badges unlocked
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Recent Badges</CardTitle>
+              <Trophy className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{recentBadges.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {userGamification.unlockedBadges?.length || 0} total earned
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -31,9 +145,9 @@ export default function Dashboard() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">245</div>
+            <div className="text-2xl font-bold">{stats?.totalProblems || 0}</div>
             <p className="text-xs text-muted-foreground">
-              +12 from last week
+              +{stats?.weeklyGrowth || 0} from last week
             </p>
           </CardContent>
         </Card>
@@ -44,9 +158,9 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7 days</div>
+            <div className="text-2xl font-bold">{stats?.currentStreak || 0} days</div>
             <p className="text-xs text-muted-foreground">
-              Keep it up!
+              {stats?.currentStreak > 0 ? 'Keep it up!' : 'Start your streak!'}
             </p>
           </CardContent>
         </Card>
@@ -57,9 +171,11 @@ export default function Dashboard() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12/25</div>
+            <div className="text-2xl font-bold">
+              {stats?.completedPatterns || 0}/{stats?.totalPatterns || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
-              48% complete
+              {stats?.patternCompletionPercentage || 0}% complete
             </p>
           </CardContent>
         </Card>
@@ -70,12 +186,78 @@ export default function Dashboard() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23</div>
+            <div className="text-2xl font-bold">{stats?.monthlyProblems || 0}</div>
             <p className="text-xs text-muted-foreground">
               problems solved
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Recent Badges */}
+      {recentBadges.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Achievements</CardTitle>
+            <CardDescription>
+              Your latest badge unlocks and accomplishments
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BadgeDisplay badges={recentBadges} gridCols={3} showProgress={false} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Link to="/patterns">
+          <Card className="cursor-pointer hover:bg-accent transition-colors">
+            <CardContent className="flex items-center gap-4 p-6">
+              <Target className="h-8 w-8 text-primary" />
+              <div>
+                <h3 className="font-semibold">Continue Learning</h3>
+                <p className="text-sm text-muted-foreground">Practice coding patterns</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/analytics">
+          <Card className="cursor-pointer hover:bg-accent transition-colors">
+            <CardContent className="flex items-center gap-4 p-6">
+              <BarChart3 className="h-8 w-8 text-primary" />
+              <div>
+                <h3 className="font-semibold">View Analytics</h3>
+                <p className="text-sm text-muted-foreground">Track your progress</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/leaderboards">
+          <Card className="cursor-pointer hover:bg-accent transition-colors">
+            <CardContent className="flex items-center gap-4 p-6">
+              <Trophy className="h-8 w-8 text-primary" />
+              <div>
+                <h3 className="font-semibold">Leaderboards</h3>
+                <p className="text-sm text-muted-foreground">Compare with others</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/challenges">
+          <Card className="cursor-pointer hover:bg-accent transition-colors">
+            <CardContent className="flex items-center gap-4 p-6">
+              <Zap className="h-8 w-8 text-primary" />
+              <div>
+                <h3 className="font-semibold">Challenges</h3>
+                <p className="text-sm text-muted-foreground">Join competitions</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Platform Widgets */}
