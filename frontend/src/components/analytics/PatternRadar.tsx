@@ -181,7 +181,8 @@ export function PatternRadar({
         <div className="h-[400px]">
           <RadarChart
             data={chartData}
-            config={chartConfig}
+            dataKey="current"
+            angleKey="pattern"
             className="h-full"
           />
         </div>
