@@ -75,19 +75,20 @@ export class NotificationService {
       const grouped = this.groupNotifications(notifications)
       
       for (const [key, notificationGroup] of grouped) {
-        const [userId, type] = key.split('_')
+        const sep = '::'
+        const [userIdStr, type] = key.split(sep)
         const count = notificationGroup.length
 
         if (count === 1) {
           // Single notification
           await this.createNotification(
-            new mongoose.Types.ObjectId(userId),
+            new mongoose.Types.ObjectId(userIdStr),
             notificationGroup[0]
           )
         } else {
           // Batch notification
           await this.createNotification(
-            new mongoose.Types.ObjectId(userId),
+            new mongoose.Types.ObjectId(userIdStr),
             {
               type: type as any,
               title: `${count} new ${type.replace('_', ' ')} notifications`,
@@ -384,9 +385,10 @@ export class NotificationService {
     notifications: Array<{ userId: mongoose.Types.ObjectId } & NotificationData>
   ): Map<string, NotificationData[]> {
     const grouped = new Map<string, NotificationData[]>()
+    const sep = '::'
 
     notifications.forEach(notification => {
-      const key = `${notification.userId}_${notification.type}`
+      const key = `${notification.userId.toString()}${sep}${notification.type}`
       if (!grouped.has(key)) {
         grouped.set(key, [])
       }
