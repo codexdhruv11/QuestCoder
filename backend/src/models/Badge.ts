@@ -111,7 +111,7 @@ const badgeSchema = new Schema<IBadge>(
 )
 
 // Static method to check if user meets badge criteria
-badgeSchema.statics.checkUserEligibility = async function(badgeId: mongoose.Types.ObjectId, userId: mongoose.Types.ObjectId): Promise<boolean> {
+badgeSchema.statics['checkUserEligibility'] = async function(badgeId: mongoose.Types.ObjectId, userId: mongoose.Types.ObjectId): Promise<boolean> {
   const UserProgress = mongoose.model('UserProgress')
   const UserGamification = mongoose.model('UserGamification')
   
@@ -174,7 +174,7 @@ badgeSchema.statics.checkUserEligibility = async function(badgeId: mongoose.Type
 }
 
 // Static method to get available badges by category
-badgeSchema.statics.getAvailableByCategory = function(category: string) {
+badgeSchema.statics['getAvailableByCategory'] = function(category: string) {
   return this.find({ category, isActive: true }).sort({ rarity: 1, createdAt: 1 })
 }
 

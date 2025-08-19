@@ -30,8 +30,8 @@ function extractToken(req: Request): string | null {
   }
 
   // Check cookies for token
-  if (req.cookies && req.cookies.token) {
-    return req.cookies.token
+  if (req.cookies && req.cookies['token']) {
+    return req.cookies['token']
   }
 
   // Check query parameter (less secure, for specific use cases)
@@ -130,7 +130,7 @@ export async function authenticate(
  */
 export async function optionalAuth(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {

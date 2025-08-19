@@ -162,16 +162,16 @@ const challengeSchema = new Schema<IChallenge>(
 )
 
 // Add a participant to the challenge
-challengeSchema.methods.addParticipant = async function(userId: mongoose.Types.ObjectId): Promise<void> {
-  if (!this.canJoin(userId)) {
+challengeSchema.methods['addParticipant'] = async function(userId: mongoose.Types.ObjectId): Promise<void> {
+  if (!this['canJoin'](userId)) {
     throw new Error('Cannot join this challenge')
   }
   
-  if (this.isParticipant(userId)) {
+  if (this['isParticipant'](userId)) {
     throw new Error('User is already a participant')
   }
   
-  this.participants.push({
+  this['participants'].push({
     userId,
     progress: {
       problemsSolved: 0,
@@ -181,12 +181,12 @@ challengeSchema.methods.addParticipant = async function(userId: mongoose.Types.O
     joinedAt: new Date()
   })
   
-  await this.save()
+  await this['save']()
 }
 
 // Remove a participant from the challenge
-challengeSchema.methods.removeParticipant = async function(userId: mongoose.Types.ObjectId): Promise<void> {
-  const participantIndex = this.participants.findIndex((p: IChallengeParticipant) => 
+challengeSchema.methods['removeParticipant'] = async function(userId: mongoose.Types.ObjectId): Promise<void> {
+  const participantIndex = this['participants'].findIndex((p: IChallengeParticipant) => 
     p.userId.equals(userId)
   )
   
@@ -194,17 +194,17 @@ challengeSchema.methods.removeParticipant = async function(userId: mongoose.Type
     throw new Error('User is not a participant in this challenge')
   }
   
-  this.participants.splice(participantIndex, 1)
-  await this.save()
+  this['participants'].splice(participantIndex, 1)
+  await this['save']()
 }
 
 // Update participant progress
-challengeSchema.methods.updateParticipantProgress = async function(
+challengeSchema.methods['updateParticipantProgress'] = async function(
   userId: mongoose.Types.ObjectId, 
   problemsSolved: number, 
   patternsCompleted: string[]
 ): Promise<void> {
-  const participant = this.participants.find((p: IChallengeParticipant) => 
+  const participant = this['participants'].find((p: IChallengeParticipant) => 
     p.userId.equals(userId)
   )
   
@@ -217,16 +217,16 @@ challengeSchema.methods.updateParticipantProgress = async function(
   participant.progress.lastActivity = new Date()
   
   // Check if challenge is completed
-  if (patternsCompleted.length >= this.targetPatterns.length) {
+  if (patternsCompleted.length >= this['targetPatterns'].length) {
     participant.completedAt = new Date()
   }
   
-  await this.save()
+  await this['save']()
 }
 
 // Get leaderboard sorted by progress
-challengeSchema.methods.getLeaderboard = function(): IChallengeParticipant[] {
-  return this.participants
+challengeSchema.methods['getLeaderboard'] = function(): IChallengeParticipant[] {
+  return this['participants']
     .slice()
     .sort((a: IChallengeParticipant, b: IChallengeParticipant) => {
       // First sort by patterns completed
@@ -257,26 +257,26 @@ challengeSchema.methods.getLeaderboard = function(): IChallengeParticipant[] {
 }
 
 // Check if user is a participant
-challengeSchema.methods.isParticipant = function(userId: mongoose.Types.ObjectId): boolean {
-  return this.participants.some((p: IChallengeParticipant) => p.userId.equals(userId))
+challengeSchema.methods['isParticipant'] = function(userId: mongoose.Types.ObjectId): boolean {
+  return this['participants'].some((p: IChallengeParticipant) => p.userId.equals(userId))
 }
 
 // Check if user can join the challenge
-challengeSchema.methods.canJoin = function(userId: mongoose.Types.ObjectId): boolean {
+challengeSchema.methods['canJoin'] = function(userId: mongoose.Types.ObjectId): boolean {
   const now = new Date()
   
   // Cannot join if already a participant
-  if (this.isParticipant(userId)) {
+  if (this['isParticipant'](userId)) {
     return false
   }
   
   // Cannot join if challenge has started or ended
-  if (now >= this.startDate) {
+  if (now >= this['startDate']) {
     return false
   }
   
   // Cannot join if max participants reached
-  if (this.maxParticipants && this.participants.length >= this.maxParticipants) {
+  if (this['maxParticipants'] && this['participants'].length >= this['maxParticipants']) {
     return false
   }
   
@@ -284,12 +284,12 @@ challengeSchema.methods.canJoin = function(userId: mongoose.Types.ObjectId): boo
 }
 
 // Get current status based on dates
-challengeSchema.methods.getStatus = function(): 'upcoming' | 'active' | 'completed' {
+challengeSchema.methods['getStatus'] = function(): 'upcoming' | 'active' | 'completed' {
   const now = new Date()
   
-  if (now < this.startDate) {
+  if (now < this['startDate']) {
     return 'upcoming'
-  } else if (now >= this.startDate && now < this.endDate) {
+  } else if (now >= this['startDate'] && now < this['endDate']) {
     return 'active'
   } else {
     return 'completed'
