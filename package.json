@@ -8,12 +8,25 @@
     "backend"
   ],
   "scripts": {
-    "dev": "concurrently -n backend,frontend -c green,cyan \"pnpm --filter @questcoder/backend dev\" \"pnpm --filter @questcoder/frontend dev\"",
-    "build": "pnpm --filter @questcoder/backend build && pnpm --filter @questcoder/frontend build",
-    "start": "pnpm --filter @questcoder/backend start",
-    "lint": "pnpm --filter @questcoder/frontend lint && pnpm --filter @questcoder/backend lint",
+    "dev": "concurrently -n backend,frontend -c green,cyan \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "start": "cd backend && npm run start",
+    "lint": "cd frontend && npm run lint && cd ../backend && npm run lint",
+    "lint:fix": "cd frontend && npm run lint:fix && cd ../backend && npm run lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "type-check": "pnpm --filter @questcoder/frontend type-check && pnpm --filter @questcoder/backend type-check"
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "cd frontend && npm run type-check && cd ../backend && npm run type-check",
+    "test": "cd backend && npm run test && cd ../frontend && npm run test",
+    "test:watch": "concurrently -n backend,frontend -c green,cyan \"cd backend && npm run test:watch\" \"cd frontend && npm run test:watch\"",
+    "test:coverage": "cd backend && npm run test:coverage && cd ../frontend && npm run test:coverage",
+    "test:ci": "cd backend && npm run test:ci && cd ../frontend && npm run test:ci",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:build:prod": "docker compose -f docker-compose.prod.yml build",
+    "docker:up:prod": "docker compose -f docker-compose.prod.yml up -d",
+    "docker:down:prod": "docker compose -f docker-compose.prod.yml down"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.21.0",
@@ -22,6 +35,8 @@
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "typescript": "^5.3.3"
   },
