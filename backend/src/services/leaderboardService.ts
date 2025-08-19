@@ -20,6 +20,7 @@ export interface LeaderboardResult {
   entries: LeaderboardEntry[]
   totalEntries: number
   currentUserRank?: number
+  groupName?: string
   lastUpdated: Date
 }
 
@@ -141,14 +142,6 @@ export class LeaderboardService {
 
     try {
       const { limit = 50, offset = 0, timeframe = 'all' } = filters
-
-      let matchStage: any = {}
-      
-      // Apply timeframe filter for activity log
-      if (timeframe !== 'all') {
-        const timeFilter = this.getTimeframeFilter(timeframe)
-        matchStage['activityLog.date'] = { $gte: timeFilter }
-      }
 
       const pipeline = [
         {
@@ -395,9 +388,19 @@ export class LeaderboardService {
         }
       }))
 
+      // Find current user's rank if provided
+      let currentUserRank: number | undefined
+      if (currentUserId && memberIds.some(id => id.equals(currentUserId))) {
+        const allEntries = await UserGamification.aggregate(pipeline)
+        currentUserRank = allEntries.findIndex(entry => entry.userId.equals(currentUserId)) + 1
+        if (currentUserRank === 0) currentUserRank = undefined
+      }
+
       const result: LeaderboardResult = {
         entries: leaderboardEntries,
         totalEntries: memberIds.length,
+        currentUserRank,
+        groupName: group.name,
         lastUpdated: new Date()
       }
 
