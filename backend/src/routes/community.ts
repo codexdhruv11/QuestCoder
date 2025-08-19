@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express'
-import { authenticateToken } from '@/middleware/auth'
+import { authenticate } from '@/middleware/auth'
 import StudyGroup from '@/models/StudyGroup'
 import Challenge from '@/models/Challenge'
+import SocketEvents from '@/socket/events'
 import { logger } from '@/utils/logger'
 import mongoose from 'mongoose'
 import Joi from 'joi'
@@ -9,7 +10,7 @@ import Joi from 'joi'
 const router = Router()
 
 // Apply authentication middleware to all routes
-router.use(authenticateToken)
+router.use(authenticate)
 
 // Validation schemas
 const createGroupSchema = Joi.object({
@@ -36,7 +37,7 @@ const createChallengeSchema = Joi.object({
  */
 router.get('/groups', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { page = '1', limit = '10', search } = req.query
 
     const pageNumber = Math.max(1, parseInt(page as string))
@@ -101,7 +102,7 @@ router.post('/groups', async (req: Request, res: Response) => {
       })
     }
 
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     
     const group = new StudyGroup({
       ...value,
@@ -132,7 +133,7 @@ router.post('/groups', async (req: Request, res: Response) => {
 router.get('/groups/:id', async (req: Request, res: Response) => {
   try {
     const groupId = req.params.id
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     const group = await StudyGroup.findById(groupId)
       .populate('ownerId', 'username')
@@ -173,7 +174,7 @@ router.get('/groups/:id', async (req: Request, res: Response) => {
 router.post('/groups/:id/join', async (req: Request, res: Response) => {
   try {
     const groupId = req.params.id
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { inviteCode } = req.body
 
     const group = await StudyGroup.findById(groupId)
@@ -202,6 +203,16 @@ router.post('/groups/:id/join', async (req: Request, res: Response) => {
 
     await group.addMember(userId)
 
+    // Emit real-time group activity
+    if (req.app.locals.socketEvents) {
+      const socketEvents = req.app.locals.socketEvents as SocketEvents
+      await socketEvents.emitGroupActivity(new mongoose.Types.ObjectId(groupId), {
+        type: 'member_joined',
+        userId,
+        username: req.user!.username
+      })
+    }
+
     res.json({
       success: true,
       message: 'Successfully joined the study group'
@@ -222,7 +233,7 @@ router.post('/groups/:id/join', async (req: Request, res: Response) => {
 router.delete('/groups/:id/leave', async (req: Request, res: Response) => {
   try {
     const groupId = req.params.id
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     const group = await StudyGroup.findById(groupId)
     if (!group) {
@@ -233,6 +244,16 @@ router.delete('/groups/:id/leave', async (req: Request, res: Response) => {
     }
 
     await group.removeMember(userId)
+
+    // Emit real-time group activity
+    if (req.app.locals.socketEvents) {
+      const socketEvents = req.app.locals.socketEvents as SocketEvents
+      await socketEvents.emitGroupActivity(new mongoose.Types.ObjectId(groupId), {
+        type: 'member_left',
+        userId,
+        username: req.user!.username
+      })
+    }
 
     res.json({
       success: true,
@@ -316,7 +337,7 @@ router.post('/challenges', async (req: Request, res: Response) => {
       })
     }
 
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     
     const challenge = new Challenge({
       ...value,
@@ -347,7 +368,7 @@ router.post('/challenges', async (req: Request, res: Response) => {
 router.post('/challenges/:id/join', async (req: Request, res: Response) => {
   try {
     const challengeId = req.params.id
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     const challenge = await Challenge.findById(challengeId)
     if (!challenge) {
@@ -359,6 +380,16 @@ router.post('/challenges/:id/join', async (req: Request, res: Response) => {
 
     await challenge.addParticipant(userId)
 
+    // Emit real-time challenge update
+    if (req.app.locals.socketEvents) {
+      const socketEvents = req.app.locals.socketEvents as SocketEvents
+      await socketEvents.emitChallengeUpdate(new mongoose.Types.ObjectId(challengeId), {
+        type: 'participant_joined',
+        userId,
+        username: req.user!.username
+      })
+    }
+
     res.json({
       success: true,
       message: 'Successfully joined the challenge'
@@ -368,6 +399,57 @@ router.post('/challenges/:id/join', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to join challenge'
+    })
+  }
+})
+
+/**
+ * POST /community/challenges/:id/leave
+ * Leave a challenge
+ */
+router.post('/challenges/:id/leave', async (req: Request, res: Response) => {
+  try {
+    const challengeId = req.params.id
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
+
+    const challenge = await Challenge.findById(challengeId)
+    if (!challenge) {
+      return res.status(404).json({
+        success: false,
+        message: 'Challenge not found'
+      })
+    }
+
+    // Check if user is a participant
+    if (!challenge.participants.some((p: any) => p.userId.equals(userId))) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are not a participant in this challenge'
+      })
+    }
+
+    // Use the removeParticipant method (already exists on model)
+    await challenge.removeParticipant(userId)
+
+    // Emit real-time challenge update
+    if (req.app.locals.socketEvents) {
+      const socketEvents = req.app.locals.socketEvents as SocketEvents
+      await socketEvents.emitChallengeUpdate(new mongoose.Types.ObjectId(challengeId), {
+        type: 'participant_left',
+        userId,
+        username: req.user!.username
+      })
+    }
+
+    res.json({
+      success: true,
+      message: 'Successfully left the challenge'
+    })
+  } catch (error) {
+    logger.error('Error leaving challenge:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to leave challenge'
     })
   }
 })
