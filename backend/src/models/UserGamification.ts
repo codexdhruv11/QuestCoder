@@ -22,7 +22,7 @@ export interface IUserGamification extends Document {
   getXpForNextLevel(): number
   getXpProgress(): { current: number; required: number; percentage: number }
   addXp(amount: number): Promise<{ leveledUp: boolean; newLevel?: number }>
-  unlockBadge(badgeId: mongoose.Types.ObjectId): Promise<void>
+  unlockBadge(badgeId: mongoose.Types.ObjectId): Promise<boolean>
 }
 
 const levelHistorySchema = new Schema<ILevelHistory>({
@@ -143,11 +143,13 @@ userGamificationSchema.methods.addXp = async function(amount: number): Promise<{
 }
 
 // Instance method to unlock a badge
-userGamificationSchema.methods.unlockBadge = async function(badgeId: mongoose.Types.ObjectId): Promise<void> {
+userGamificationSchema.methods.unlockBadge = async function(badgeId: mongoose.Types.ObjectId): Promise<boolean> {
   if (!this.unlockedBadges.some((id: mongoose.Types.ObjectId) => id.equals(badgeId))) {
     this.unlockedBadges.push(badgeId)
     await this.save()
+    return true
   }
+  return false
 }
 
 // Indexes for better query performance
