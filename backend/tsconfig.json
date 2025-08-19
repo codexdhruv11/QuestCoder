@@ -17,6 +17,9 @@
     "noEmit": false,
     "declaration": true,
     "sourceMap": true,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"]
