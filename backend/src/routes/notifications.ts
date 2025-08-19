@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { authenticateToken } from '@/middleware/auth'
+import { authenticate } from '@/middleware/auth'
 import NotificationService from '@/services/notificationService'
 import { logger } from '@/utils/logger'
 import mongoose from 'mongoose'
@@ -7,7 +7,7 @@ import mongoose from 'mongoose'
 const router = Router()
 
 // Apply authentication middleware to all routes
-router.use(authenticateToken)
+router.use(authenticate)
 
 /**
  * GET /notifications
@@ -15,7 +15,7 @@ router.use(authenticateToken)
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { 
       page = '1', 
       limit = '20', 
@@ -70,7 +70,7 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const stats = await NotificationService.getUserNotificationStats(userId)
     
     res.json({
@@ -93,7 +93,7 @@ router.get('/stats', async (req: Request, res: Response) => {
 router.put('/:id/read', async (req: Request, res: Response) => {
   try {
     const notificationId = new mongoose.Types.ObjectId(req.params.id)
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     await NotificationService.markAsRead(notificationId, userId)
     
@@ -116,7 +116,7 @@ router.put('/:id/read', async (req: Request, res: Response) => {
  */
 router.put('/read-all', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const modifiedCount = await NotificationService.markAllAsRead(userId)
     
     res.json({
@@ -139,7 +139,7 @@ router.put('/read-all', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const notificationId = new mongoose.Types.ObjectId(req.params.id)
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     await NotificationService.deleteNotification(notificationId, userId)
     
