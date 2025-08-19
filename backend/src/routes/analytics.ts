@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { authenticateToken } from '@/middleware/auth'
+import { authenticate } from '@/middleware/auth'
 import AnalyticsService from '@/services/analyticsService'
 import { logger } from '@/utils/logger'
 import mongoose from 'mongoose'
@@ -7,7 +7,7 @@ import mongoose from 'mongoose'
 const router = Router()
 
 // Apply authentication middleware to all routes
-router.use(authenticateToken)
+router.use(authenticate)
 
 /**
  * GET /analytics/overview
@@ -15,7 +15,7 @@ router.use(authenticateToken)
  */
 router.get('/overview', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const overview = await AnalyticsService.getOverview(userId)
     
     res.json({
@@ -37,7 +37,7 @@ router.get('/overview', async (req: Request, res: Response) => {
  */
 router.get('/progress', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { period = 'daily', days = '30' } = req.query
     
     const validPeriods = ['daily', 'weekly', 'monthly']
@@ -85,7 +85,7 @@ router.get('/progress', async (req: Request, res: Response) => {
  */
 router.get('/patterns', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const patternAnalytics = await AnalyticsService.getPatternAnalytics(userId)
     
     res.json({
@@ -109,7 +109,7 @@ router.get('/patterns', async (req: Request, res: Response) => {
  */
 router.get('/predictions', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const insights = await AnalyticsService.getPredictiveInsights(userId)
     
     res.json({
@@ -133,7 +133,7 @@ router.get('/predictions', async (req: Request, res: Response) => {
  */
 router.get('/performance', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const metrics = await AnalyticsService.getPerformanceMetrics(userId)
     
     res.json({
@@ -157,7 +157,7 @@ router.get('/performance', async (req: Request, res: Response) => {
  */
 router.get('/summary', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     
     // Get all analytics data in parallel
     const [overview, patterns, insights, metrics] = await Promise.all([
@@ -181,6 +181,57 @@ router.get('/summary', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get analytics summary'
+    })
+  }
+})
+
+/**
+ * GET /analytics/export
+ * Export analytics data as CSV/PDF
+ */
+router.get('/export', async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
+    const { format = 'csv', timeRange = '30d' } = req.query
+    
+    // Get analytics data
+    const [overview, patterns] = await Promise.all([
+      AnalyticsService.getOverview(userId),
+      AnalyticsService.getPatternAnalytics(userId)
+    ])
+    
+    if (format === 'csv') {
+      // Generate CSV content
+      const csvContent = [
+        'Analytics Export',
+        `Date: ${new Date().toISOString()}`,
+        '',
+        'Overview',
+        `Total Problems,${overview.totalProblems}`,
+        `Current Streak,${overview.currentStreak}`,
+        `Best Streak,${overview.bestStreak}`,
+        `Total XP,${overview.totalXP}`,
+        '',
+        'Pattern Progress',
+        'Pattern,Solved,Total,Completion',
+        ...patterns.map(p => `${p.patternName},${p.solved},${p.total},${p.completion}%`)
+      ].join('\n')
+      
+      res.setHeader('Content-Type', 'text/csv')
+      res.setHeader('Content-Disposition', 'attachment; filename="analytics.csv"')
+      res.send(csvContent)
+    } else {
+      // For PDF, return a placeholder response
+      res.json({
+        success: false,
+        message: 'PDF export is not yet implemented'
+      })
+    }
+  } catch (error) {
+    logger.error('Error exporting analytics:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export analytics'
     })
   }
 })
