@@ -221,6 +221,9 @@ router.post('/:patternId/problems/:problemId/toggle', authenticate, async (req, 
         patternName: pattern.name,
         date: new Date()
       })
+      
+      // Save progress after unsolving
+      await userProgress.save()
     } else {
       // Add to solved problems
       if (!patternProgress.solvedProblemIds) {
@@ -258,6 +261,9 @@ router.post('/:patternId/problems/:problemId/toggle', authenticate, async (req, 
         }
       })
       
+      // Save progress before processing gamification to ensure badge eligibility checks use latest data
+      await userProgress.save()
+
       // Process gamification rewards for problem completion
       const userObjectId = new mongoose.Types.ObjectId(userId)
       const xpResult = await GamificationService.processXpGain(
@@ -298,10 +304,11 @@ router.post('/:patternId/problems/:problemId/toggle', authenticate, async (req, 
             totalProblems: patternProgress.totalProblems
           })
         }
+
+        // Emit leaderboard update for XP changes
+        await socketEvents.emitLeaderboardUpdate('xp')
       }
     }
-    
-    await userProgress.save()
     
     res.json({
       success: true,

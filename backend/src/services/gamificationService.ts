@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import UserGamification from '@/models/UserGamification'
 import Badge from '@/models/Badge'
 import UserProgress from '@/models/UserProgress'
+import LeaderboardService from '@/services/leaderboardService'
 import { logger } from '@/utils/logger'
 
 export interface XpGainResult {
@@ -56,7 +57,7 @@ export class GamificationService {
     try {
       // Calculate XP with streak bonus
       const streakBonus = this.calculateStreakBonus(currentStreak)
-      const xpGained = this.calculateXpReward(difficulty, streakBonus)
+      const problemXp = this.calculateXpReward(difficulty, streakBonus)
 
       // Get or create user gamification record
       let userGamification = await UserGamification.findOne({ userId })
@@ -65,21 +66,36 @@ export class GamificationService {
         await userGamification.save()
       }
 
-      // Add XP and handle level-ups
-      const levelResult = await userGamification.addXp(xpGained)
+      // Capture old level before awarding any XP
+      const oldLevel = userGamification.currentLevel
 
-      // Check for new badge unlocks
+      // Add problem XP
+      await userGamification.addXp(problemXp)
+
+      // Check for new badge unlocks (which may award additional XP)
       const badgesUnlocked = await this.checkAndUnlockBadges(userId)
 
+      // Calculate badge bonus XP
+      const badgeBonusXp = badgesUnlocked.reduce((sum, b) => sum + (b.xpBonus || 0), 0)
+
+      // Refetch user gamification to get updated values after badge XP
+      userGamification = await UserGamification.findOne({ userId })
+      const finalLevel = userGamification!.currentLevel
+
       const result: XpGainResult = {
-        xpGained,
+        xpGained: problemXp + badgeBonusXp,
         totalXp: userGamification.totalXp,
-        leveledUp: levelResult.leveledUp,
-        newLevel: levelResult.newLevel,
+        leveledUp: finalLevel > oldLevel,
+        newLevel: finalLevel > oldLevel ? finalLevel : undefined,
         badgesUnlocked
       }
 
-      logger.info(`XP processed for user ${userId}: +${xpGained} XP (difficulty: ${difficulty}, streak bonus: ${streakBonus})`, result)
+      // Clear leaderboard caches after XP changes
+      LeaderboardService.clearCache('xp_leaderboard')
+      // Optionally clear problem/streak caches if solving affects them
+      LeaderboardService.clearCache('problems_leaderboard')
+
+      logger.info(`XP processed for user ${userId}: +${problemXp} problem XP + ${badgeBonusXp} badge XP = +${result.xpGained} total XP (difficulty: ${difficulty}, streak bonus: ${streakBonus})`, result)
       return result
 
     } catch (error) {
@@ -101,28 +117,31 @@ export class GamificationService {
       const unlockedBadges: any[] = []
 
       for (const badge of allBadges) {
-        // Skip if user already has this badge
-        if (userGamification.unlockedBadges.includes(badge._id)) {
+        // Skip if user already has this badge - use equals() for ObjectId comparison
+        if (userGamification.unlockedBadges.some((id: mongoose.Types.ObjectId) => id.equals(badge._id))) {
           continue
         }
 
         // Check if user meets criteria
         const isEligible = await Badge.checkUserEligibility(badge._id, userId)
         if (isEligible) {
-          // Unlock the badge
-          await userGamification.unlockBadge(badge._id)
+          // Unlock the badge - returns true if badge was newly added
+          const wasNewlyUnlocked = await userGamification.unlockBadge(badge._id)
           
-          // Award XP bonus for the badge
-          if (badge.xpReward > 0) {
-            await userGamification.addXp(badge.xpReward)
+          // Only award XP and push notification if badge was newly unlocked
+          if (wasNewlyUnlocked) {
+            // Award XP bonus for the badge
+            if (badge.xpReward > 0) {
+              await userGamification.addXp(badge.xpReward)
+            }
+
+            unlockedBadges.push({
+              badge: badge.toObject(),
+              xpBonus: badge.xpReward
+            })
+
+            logger.info(`Badge unlocked for user ${userId}: ${badge.name} (+${badge.xpReward} XP)`)
           }
-
-          unlockedBadges.push({
-            badge: badge.toObject(),
-            xpBonus: badge.xpReward
-          })
-
-          logger.info(`Badge unlocked for user ${userId}: ${badge.name} (+${badge.xpReward} XP)`)
         }
       }
 
@@ -236,7 +255,7 @@ export class GamificationService {
 
       const badgeProgress = await Promise.all(
         allBadges.map(async (badge) => {
-          const isUnlocked = userGamification?.unlockedBadges.includes(badge._id) || false
+          const isUnlocked = !!userGamification?.unlockedBadges?.some((id: mongoose.Types.ObjectId) => id.equals(badge._id))
           const isEligible = !isUnlocked && await Badge.checkUserEligibility(badge._id, userId)
 
           // Calculate progress percentage for some badge types
@@ -244,7 +263,7 @@ export class GamificationService {
           if (!isUnlocked && userProgress) {
             switch (badge.criteria.type) {
               case 'problems_solved':
-                progressPercentage = Math.min(100, (userProgress.activityLog?.length || 0) / badge.criteria.value * 100)
+                progressPercentage = Math.min(100, ((userProgress.activityLog||[]).filter(l => l.type === 'problem_solved').length) / badge.criteria.value * 100)
                 break
               case 'streak_days':
                 progressPercentage = Math.min(100, (userProgress.currentStreak || 0) / badge.criteria.value * 100)

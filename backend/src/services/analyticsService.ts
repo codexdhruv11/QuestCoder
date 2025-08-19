@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 import UserProgress from '@/models/UserProgress'
-import PatternService from '@/services/patternService'
+import { PatternService } from '@/services/patternService'
 import { logger } from '@/utils/logger'
 
 export interface ChartDataPoint {
@@ -28,6 +28,9 @@ export interface AnalyticsOverview {
   weeklyProblems: number
   currentStreak: number
   bestStreak: number
+  longestStreak: number // Alias for bestStreak
+  problemsSolved: number // Alias for totalProblems
+  totalXP: number // From UserGamification
   difficultyDistribution: DifficultyDistribution
   recentActivity: ChartDataPoint[]
 }
@@ -60,6 +63,11 @@ export class AnalyticsService {
         return this.getEmptyOverview()
       }
 
+      // Get UserGamification data for totalXP
+      const UserGamification = mongoose.model('UserGamification')
+      const userGamification = await UserGamification.findOne({ userId })
+      const totalXP = userGamification?.totalXp || 0
+
       const activityLog = userProgress.activityLog || []
       const totalProblems = activityLog.filter(log => log.type === 'problem_solved').length
 
@@ -78,11 +86,16 @@ export class AnalyticsService {
       // Generate recent activity chart (last 14 days)
       const recentActivity = this.generateActivityChart(activityLog, 14)
 
+      const bestStreak = userProgress.longestStreak || 0
+
       return {
         totalProblems,
         weeklyProblems,
         currentStreak: userProgress.currentStreak || 0,
-        bestStreak: userProgress.longestStreak || 0,
+        bestStreak,
+        longestStreak: bestStreak, // Alias for frontend compatibility
+        problemsSolved: totalProblems, // Alias for frontend compatibility
+        totalXP,
         difficultyDistribution,
         recentActivity
       }
@@ -262,6 +275,9 @@ export class AnalyticsService {
       weeklyProblems: 0,
       currentStreak: 0,
       bestStreak: 0,
+      longestStreak: 0,
+      problemsSolved: 0,
+      totalXP: 0,
       difficultyDistribution: { Easy: 0, Medium: 0, Hard: 0 },
       recentActivity: []
     }
@@ -297,7 +313,6 @@ export class AnalyticsService {
     days: number, 
     period: 'daily' | 'weekly' | 'monthly' = 'daily'
   ): ChartDataPoint[] {
-    const chartData: ChartDataPoint[] = []
     const endDate = new Date()
     const startDate = new Date()
     startDate.setDate(endDate.getDate() - days)
@@ -308,7 +323,21 @@ export class AnalyticsService {
       new Date(log.date) >= startDate
     )
 
-    // Group by period
+    switch (period) {
+      case 'daily':
+        return this.generateDailyChart(solvedLogs, startDate, endDate)
+      case 'weekly':
+        return this.generateWeeklyChart(solvedLogs, startDate, endDate)
+      case 'monthly':
+        return this.generateMonthlyChart(solvedLogs, startDate, endDate)
+      default:
+        return this.generateDailyChart(solvedLogs, startDate, endDate)
+    }
+  }
+
+  private static generateDailyChart(solvedLogs: any[], startDate: Date, endDate: Date): ChartDataPoint[] {
+    const chartData: ChartDataPoint[] = []
+
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0]
       const dayStart = new Date(d)
@@ -328,6 +357,91 @@ export class AnalyticsService {
     }
 
     return chartData
+  }
+
+  private static generateWeeklyChart(solvedLogs: any[], startDate: Date, endDate: Date): ChartDataPoint[] {
+    const chartData: ChartDataPoint[] = []
+    const weeklyData = new Map<string, number>()
+
+    // Group logs by ISO week
+    solvedLogs.forEach(log => {
+      const logDate = new Date(log.date)
+      const year = logDate.getFullYear()
+      const week = this.getISOWeek(logDate)
+      const weekKey = `${year}-W${week.toString().padStart(2, '0')}`
+      
+      weeklyData.set(weekKey, (weeklyData.get(weekKey) || 0) + 1)
+    })
+
+    // Generate chart data for each week in range
+    const currentDate = new Date(startDate)
+    while (currentDate <= endDate) {
+      const year = currentDate.getFullYear()
+      const week = this.getISOWeek(currentDate)
+      const weekKey = `${year}-W${week.toString().padStart(2, '0')}`
+      const weekStart = this.getFirstDayOfWeek(currentDate)
+
+      chartData.push({
+        date: weekKey,
+        value: weeklyData.get(weekKey) || 0,
+        label: `Week of ${weekStart.toLocaleDateString()}`
+      })
+
+      // Move to next week
+      currentDate.setDate(currentDate.getDate() + 7)
+    }
+
+    return chartData
+  }
+
+  private static generateMonthlyChart(solvedLogs: any[], startDate: Date, endDate: Date): ChartDataPoint[] {
+    const chartData: ChartDataPoint[] = []
+    const monthlyData = new Map<string, number>()
+
+    // Group logs by year-month
+    solvedLogs.forEach(log => {
+      const logDate = new Date(log.date)
+      const yearMonth = `${logDate.getFullYear()}-${(logDate.getMonth() + 1).toString().padStart(2, '0')}`
+      
+      monthlyData.set(yearMonth, (monthlyData.get(yearMonth) || 0) + 1)
+    })
+
+    // Generate chart data for each month in range
+    const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+    const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1)
+    
+    while (currentDate <= endMonth) {
+      const yearMonth = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`
+      
+      chartData.push({
+        date: yearMonth,
+        value: monthlyData.get(yearMonth) || 0,
+        label: currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+      })
+
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1)
+    }
+
+    return chartData
+  }
+
+  private static getISOWeek(date: Date): number {
+    const tempDate = new Date(date.valueOf())
+    const dayNum = (date.getDay() + 6) % 7
+    tempDate.setDate(tempDate.getDate() - dayNum + 3)
+    const firstThursday = tempDate.valueOf()
+    tempDate.setMonth(0, 1)
+    if (tempDate.getDay() !== 4) {
+      tempDate.setMonth(0, 1 + ((4 - tempDate.getDay()) + 7) % 7)
+    }
+    return 1 + Math.ceil((firstThursday - tempDate.valueOf()) / 604800000)
+  }
+
+  private static getFirstDayOfWeek(date: Date): Date {
+    const dayOfWeek = date.getDay()
+    const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Adjust when day is Sunday
+    return new Date(date.getFullYear(), date.getMonth(), diff)
   }
 
   private static calculateVelocityTrend(activityLog: any[]): PredictiveInsight | null {
