@@ -97,7 +97,7 @@ const studyGroupSchema = new Schema<IStudyGroup>(
 )
 
 // Generate a random invite code
-studyGroupSchema.methods.generateInviteCode = function(): string {
+studyGroupSchema.methods['generateInviteCode'] = function(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   let result = ''
   for (let i = 0; i < 8; i++) {
@@ -107,29 +107,29 @@ studyGroupSchema.methods.generateInviteCode = function(): string {
 }
 
 // Add a member to the group
-studyGroupSchema.methods.addMember = async function(userId: mongoose.Types.ObjectId, role: 'admin' | 'member' = 'member'): Promise<void> {
+studyGroupSchema.methods['addMember'] = async function(userId: mongoose.Types.ObjectId, role: 'admin' | 'member' = 'member'): Promise<void> {
   // Check if user is already a member
-  if (this.isMember(userId)) {
+  if (this['isMember'](userId)) {
     throw new Error('User is already a member of this group')
   }
   
-  this.members.push({
+  this['members'].push({
     userId,
     role,
     joinedAt: new Date()
   })
   
-  await this.save()
+  await this['save']()
 }
 
 // Remove a member from the group
-studyGroupSchema.methods.removeMember = async function(userId: mongoose.Types.ObjectId): Promise<void> {
+studyGroupSchema.methods['removeMember'] = async function(userId: mongoose.Types.ObjectId): Promise<void> {
   // Cannot remove the owner
-  if (this.ownerId.equals(userId)) {
+  if (this['ownerId'].equals(userId)) {
     throw new Error('Cannot remove the group owner')
   }
   
-  const memberIndex = this.members.findIndex((member: IStudyGroupMember) => 
+  const memberIndex = this['members'].findIndex((member: IStudyGroupMember) => 
     member.userId.equals(userId)
   )
   
@@ -137,18 +137,18 @@ studyGroupSchema.methods.removeMember = async function(userId: mongoose.Types.Ob
     throw new Error('User is not a member of this group')
   }
   
-  this.members.splice(memberIndex, 1)
-  await this.save()
+  this['members'].splice(memberIndex, 1)
+  await this['save']()
 }
 
 // Update member role
-studyGroupSchema.methods.updateMemberRole = async function(userId: mongoose.Types.ObjectId, newRole: 'admin' | 'member'): Promise<void> {
+studyGroupSchema.methods['updateMemberRole'] = async function(userId: mongoose.Types.ObjectId, newRole: 'admin' | 'member'): Promise<void> {
   // Cannot change owner role
-  if (this.ownerId.equals(userId)) {
+  if (this['ownerId'].equals(userId)) {
     throw new Error('Cannot change owner role')
   }
   
-  const member = this.members.find((member: IStudyGroupMember) => 
+  const member = this['members'].find((member: IStudyGroupMember) => 
     member.userId.equals(userId)
   )
   
@@ -157,23 +157,23 @@ studyGroupSchema.methods.updateMemberRole = async function(userId: mongoose.Type
   }
   
   member.role = newRole
-  await this.save()
+  await this['save']()
 }
 
 // Check if user is a member
-studyGroupSchema.methods.isMember = function(userId: mongoose.Types.ObjectId): boolean {
-  return this.ownerId.equals(userId) || 
-    this.members.some((member: IStudyGroupMember) => member.userId.equals(userId))
+studyGroupSchema.methods['isMember'] = function(userId: mongoose.Types.ObjectId): boolean {
+  return this['ownerId'].equals(userId) || 
+    this['members'].some((member: IStudyGroupMember) => member.userId.equals(userId))
 }
 
 // Check if user has permission for specific action
-studyGroupSchema.methods.hasPermission = function(userId: mongoose.Types.ObjectId, action: 'manage_members' | 'delete_group' | 'edit_group'): boolean {
+studyGroupSchema.methods['hasPermission'] = function(userId: mongoose.Types.ObjectId, action: 'manage_members' | 'delete_group' | 'edit_group'): boolean {
   // Owner has all permissions
-  if (this.ownerId.equals(userId)) {
+  if (this['ownerId'].equals(userId)) {
     return true
   }
   
-  const member = this.members.find((member: IStudyGroupMember) => 
+  const member = this['members'].find((member: IStudyGroupMember) => 
     member.userId.equals(userId)
   )
   
