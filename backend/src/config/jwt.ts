@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt, { SignOptions } from 'jsonwebtoken'
 import { logger } from '@/utils/logger'
 
 const JWT_SECRET = process.env['JWT_SECRET'] || 'fallback-secret-key-change-in-production'
@@ -27,11 +27,12 @@ export class JWTService {
    */
   static generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
     try {
-      return jwt.sign(payload, JWT_SECRET, {
-        expiresIn: JWT_EXPIRES_IN,
+      const options: SignOptions = {
+        expiresIn: JWT_EXPIRES_IN as any,
         issuer: 'questcoder-api',
         audience: 'questcoder-frontend'
-      })
+      }
+      return jwt.sign(payload, JWT_SECRET, options)
     } catch (error) {
       logger.error('Failed to generate access token:', error)
       throw new Error('Token generation failed')
@@ -43,11 +44,12 @@ export class JWTService {
    */
   static generateRefreshToken(payload: Omit<RefreshTokenPayload, 'iat' | 'exp'>): string {
     try {
-      return jwt.sign(payload, JWT_REFRESH_SECRET, {
-        expiresIn: JWT_REFRESH_EXPIRES_IN,
+      const options: SignOptions = {
+        expiresIn: JWT_REFRESH_EXPIRES_IN as any,
         issuer: 'questcoder-api',
         audience: 'questcoder-frontend'
-      })
+      }
+      return jwt.sign(payload, JWT_REFRESH_SECRET, options)
     } catch (error) {
       logger.error('Failed to generate refresh token:', error)
       throw new Error('Refresh token generation failed')
