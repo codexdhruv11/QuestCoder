@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { authenticateToken } from '@/middleware/auth'
+import { authenticate } from '@/middleware/auth'
 import GamificationService from '@/services/gamificationService'
 import LeaderboardService from '@/services/leaderboardService'
 import { logger } from '@/utils/logger'
@@ -8,7 +8,7 @@ import mongoose from 'mongoose'
 const router = Router()
 
 // Apply authentication middleware to all routes
-router.use(authenticateToken)
+router.use(authenticate)
 
 /**
  * GET /gamification/profile
@@ -16,7 +16,7 @@ router.use(authenticateToken)
  */
 router.get('/profile', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const profile = await GamificationService.getUserGamificationStats(userId)
     
     res.json({
@@ -38,7 +38,7 @@ router.get('/profile', async (req: Request, res: Response) => {
  */
 router.get('/badges', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { category } = req.query
     
     const [availableBadges, userBadgeProgress] = await Promise.all([
@@ -68,13 +68,35 @@ router.get('/badges', async (req: Request, res: Response) => {
  */
 router.get('/leaderboard', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { 
       type = 'xp', 
       timeframe = 'all', 
-      limit = '50', 
-      offset = '0' 
+      limit = '10', 
+      offset = '0',
+      groupId 
     } = req.query
+
+    // Check if requesting group leaderboard
+    if (groupId) {
+      try {
+        const groupLeaderboard = await LeaderboardService.getGroupLeaderboard(
+          new mongoose.Types.ObjectId(groupId as string),
+          { limit: parseInt(limit as string), offset: parseInt(offset as string), timeframe: timeframe as any },
+          userId
+        )
+        return res.json({
+          success: true,
+          data: groupLeaderboard
+        })
+      } catch (error) {
+        logger.error('Error getting group leaderboard:', error)
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to get group leaderboard'
+        })
+      }
+    }
 
     const validTypes = ['xp', 'problems', 'streak']
     if (!validTypes.includes(type as string)) {
@@ -156,7 +178,7 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
  */
 router.get('/levels', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     const userStats = await GamificationService.getUserGamificationStats(userId)
     
     // Calculate level progression data
@@ -201,7 +223,7 @@ router.get('/levels', async (req: Request, res: Response) => {
  */
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     
     const [userStats, badgeProgress, xpLeaderboard] = await Promise.all([
       GamificationService.getUserGamificationStats(userId),
@@ -244,7 +266,7 @@ router.get('/stats', async (req: Request, res: Response) => {
  */
 router.post('/initialize', async (req: Request, res: Response) => {
   try {
-    const userId = new mongoose.Types.ObjectId(req.user?.userId)
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
     await GamificationService.initializeUserGamification(userId)
     
     res.json({
@@ -256,6 +278,42 @@ router.post('/initialize', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to initialize gamification'
+    })
+  }
+})
+
+/**
+ * POST /gamification/badges/:id/claim
+ * Claim an eligible badge
+ */
+router.post('/badges/:id/claim', async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user!._id)
+    const badgeId = new mongoose.Types.ObjectId(req.params.id)
+    
+    // Check and unlock eligible badges (this will validate eligibility)
+    const unlockedBadges = await GamificationService.checkAndUnlockBadges(userId)
+    
+    // Check if the requested badge was unlocked
+    const claimedBadge = unlockedBadges.find(b => b.badge._id.equals(badgeId))
+    
+    if (claimedBadge) {
+      res.json({
+        success: true,
+        data: claimedBadge,
+        message: 'Badge claimed successfully'
+      })
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Badge not eligible or already claimed'
+      })
+    }
+  } catch (error) {
+    logger.error('Error claiming badge:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to claim badge'
     })
   }
 })
