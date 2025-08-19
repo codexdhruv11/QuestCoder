@@ -144,7 +144,7 @@ userGamificationSchema.methods.addXp = async function(amount: number): Promise<{
 
 // Instance method to unlock a badge
 userGamificationSchema.methods.unlockBadge = async function(badgeId: mongoose.Types.ObjectId): Promise<void> {
-  if (!this.unlockedBadges.includes(badgeId)) {
+  if (!this.unlockedBadges.some((id: mongoose.Types.ObjectId) => id.equals(badgeId))) {
     this.unlockedBadges.push(badgeId)
     await this.save()
   }

@@ -11,6 +11,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LevelBadge } from '@/components/gamification/LevelIndicator'
 import { CompactBadgeList } from '@/components/gamification/BadgeDisplay'
+import { gamificationAPI } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
   Trophy, 
   Medal, 
@@ -195,52 +197,43 @@ const LeaderboardEntry: React.FC<{
 }
 
 const Leaderboards: React.FC = () => {
+  const { user } = useAuth()
   const [data, setData] = useState<LeaderboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [timeFrame, setTimeFrame] = useState('monthly')
   const [selectedGroup, setSelectedGroup] = useState('global')
   const [searchTerm, setSearchTerm] = useState('')
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
     fetchLeaderboards()
-    getCurrentUser()
   }, [timeFrame, selectedGroup])
-
-  const getCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/auth/profile', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      if (response.ok) {
-        const user = await response.json()
-        setCurrentUserId(user.id)
-      }
-    } catch (error) {
-      console.error('Error fetching current user:', error)
-    }
-  }
 
   const fetchLeaderboards = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        timeFrame,
-        ...(selectedGroup !== 'global' && { groupId: selectedGroup })
-      })
-
-      const response = await fetch(`/api/gamification/leaderboards?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-
-      if (!response.ok) throw new Error('Failed to fetch leaderboards')
-
-      const leaderboardData = await response.json()
+      const type = 'xp' // Default to XP leaderboard
+      const response = await gamificationAPI.getLeaderboard(
+        type,
+        selectedGroup !== 'global' ? selectedGroup : undefined
+      )
+      
+      // Transform response to match expected shape
+      const leaderboardData = {
+        global: {
+          xp: response.entries || [],
+          problemsSolved: [],
+          streak: []
+        },
+        groups: {},
+        userRank: {
+          xp: response.currentUserRank || 0,
+          problemsSolved: 0,
+          streak: 0
+        },
+        timeFrame
+      }
+      
       setData(leaderboardData)
     } catch (error) {
       console.error('Error fetching leaderboards:', error)
@@ -462,7 +455,7 @@ const Leaderboards: React.FC = () => {
                       entry={entry}
                       type={type}
                       index={index}
-                      currentUser={currentUserId || undefined}
+                      currentUser={user?.id}
                     />
                   ))}
                 </AnimatePresence>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DatePicker } from '@/components/ui/date-picker'
-import { LineChart, BarChart, PieChart, AreaChart } from '@/components/ui/chart'
+import { LineChart, BarChart, PieChart } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/use-toast'
 import { motion } from 'framer-motion'
@@ -24,6 +24,7 @@ import {
   Flame
 } from 'lucide-react'
 import { format, subDays, subWeeks, subMonths, subYears } from 'date-fns'
+import { analyticsAPI } from '@/lib/api'
 
 interface AnalyticsData {
   overview: {
@@ -94,22 +95,25 @@ const Analytics: React.FC = () => {
   const fetchAnalytics = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        timeRange,
-        ...(selectedPattern !== 'all' && { pattern: selectedPattern }),
-        ...(startDate && { startDate: startDate.toISOString() }),
-        ...(endDate && { endDate: endDate.toISOString() })
-      })
+      const period = timeRange === '7d' ? 'daily' : timeRange === '30d' ? 'daily' : timeRange === '90d' ? 'weekly' : 'monthly'
+      const days = timeRanges[timeRange].days
+      
+      const [overviewRes, progressRes, patternsRes, predictionsRes, performanceRes] = await Promise.all([
+        analyticsAPI.getOverview(),
+        analyticsAPI.getProgress(period, days),
+        analyticsAPI.getPatterns(),
+        analyticsAPI.getPredictions(),
+        analyticsAPI.getPerformance()
+      ])
 
-      const response = await fetch(`/api/analytics?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-
-      if (!response.ok) throw new Error('Failed to fetch analytics')
-
-      const analyticsData = await response.json()
+      const analyticsData = {
+        overview: overviewRes.data,
+        progressChart: progressRes.data?.chartData || [],
+        patternAnalytics: patternsRes.data?.patterns || [],
+        timeAnalytics: performanceRes.data?.timeAnalytics || [],
+        performanceMetrics: performanceRes.data?.metrics || [],
+        predictions: predictionsRes.data || {}
+      }
       setData(analyticsData)
     } catch (error) {
       console.error('Error fetching analytics:', error)
@@ -376,15 +380,14 @@ const Analytics: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <AreaChart
+              <LineChart
                 data={data.progressChart}
                 height={400}
                 lines={[
-                  { key: 'problemsSolved', name: 'Problems Solved', color: '#3b82f6' },
-                  { key: 'xpGained', name: 'XP Gained', color: '#10b981' }
+                  { dataKey: 'problemsSolved', name: 'Problems Solved', stroke: '#3b82f6' },
+                  { dataKey: 'xpGained', name: 'XP Gained', stroke: '#10b981' }
                 ]}
                 xAxisKey="date"
-                formatXAxis={(value) => format(new Date(value), 'MMM dd')}
               />
             </CardContent>
           </Card>
@@ -399,10 +402,9 @@ const Analytics: React.FC = () => {
                   data={data.timeAnalytics}
                   height={300}
                   bars={[
-                    { key: 'problemsSolved', name: 'Problems Solved', color: '#8b5cf6' }
+                    { dataKey: 'problemsSolved', name: 'Problems Solved', fill: '#8b5cf6' }
                   ]}
                   xAxisKey="hour"
-                  formatXAxis={(value) => `${value}:00`}
                 />
               </CardContent>
             </Card>
@@ -520,10 +522,9 @@ const Analytics: React.FC = () => {
                   data={data.patternAnalytics}
                   height={300}
                   bars={[
-                    { key: 'completionRate', name: 'Completion Rate (%)', color: '#f59e0b' }
+                    { dataKey: 'completionRate', name: 'Completion Rate (%)', fill: '#f59e0b' }
                   ]}
                   xAxisKey="pattern"
-                  formatXAxis={(value) => value.substring(0, 10) + '...'}
                 />
               </CardContent>
             </Card>

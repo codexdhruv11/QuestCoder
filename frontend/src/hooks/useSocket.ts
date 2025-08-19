@@ -90,16 +90,28 @@ export function useSocketSubscription<T = any>(
   }, [socket, event, ...deps]);
 }
 
-export function useSocketRoom(room: string) {
-  const { emit } = useSocketEvents();
+export function useSocketRoom(roomType: 'group' | 'challenge' | 'leaderboard', roomId: string) {
+  const { joinGroup, leaveGroup, joinChallenge, leaveChallenge, subscribeLeaderboard, unsubscribeLeaderboard } = useSocket();
 
   const joinRoom = useCallback(() => {
-    emit('join_room', { room });
-  }, [emit, room]);
+    if (roomType === 'group') {
+      joinGroup(roomId);
+    } else if (roomType === 'challenge') {
+      joinChallenge(roomId);
+    } else if (roomType === 'leaderboard') {
+      subscribeLeaderboard(roomId);
+    }
+  }, [roomType, roomId, joinGroup, joinChallenge, subscribeLeaderboard]);
 
   const leaveRoom = useCallback(() => {
-    emit('leave_room', { room });
-  }, [emit, room]);
+    if (roomType === 'group') {
+      leaveGroup(roomId);
+    } else if (roomType === 'challenge') {
+      leaveChallenge(roomId);
+    } else if (roomType === 'leaderboard') {
+      unsubscribeLeaderboard(roomId);
+    }
+  }, [roomType, roomId, leaveGroup, leaveChallenge, unsubscribeLeaderboard]);
 
   useEffect(() => {
     joinRoom();

@@ -100,34 +100,29 @@ export function PerformanceChart({
 
   // Prepare chart data
   const chartData = filteredData.map(item => ({
-    name: new Date(item.date).toLocaleDateString('en-US', { 
+    date: new Date(item.date).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric' 
     }),
-    ...(showDifficulties.easy && { Easy: item.easy }),
-    ...(showDifficulties.medium && { Medium: item.medium }),
-    ...(showDifficulties.hard && { Hard: item.hard }),
-    ...(showDifficulties.total && { Total: item.total }),
+    easy: item.easy,
+    medium: item.medium,
+    hard: item.hard,
+    total: item.total,
   }));
 
-  const chartConfig = {
-    Easy: {
-      label: "Easy",
-      color: "hsl(var(--chart-1))",
-    },
-    Medium: {
-      label: "Medium", 
-      color: "hsl(var(--chart-2))",
-    },
-    Hard: {
-      label: "Hard",
-      color: "hsl(var(--chart-3))",
-    },
-    Total: {
-      label: "Total",
-      color: "hsl(var(--chart-4))",
-    },
-  };
+  const chartLines = [];
+  if (showDifficulties.easy) {
+    chartLines.push({ dataKey: 'easy', name: 'Easy', stroke: '#10b981' });
+  }
+  if (showDifficulties.medium) {
+    chartLines.push({ dataKey: 'medium', name: 'Medium', stroke: '#f59e0b' });
+  }
+  if (showDifficulties.hard) {
+    chartLines.push({ dataKey: 'hard', name: 'Hard', stroke: '#ef4444' });
+  }
+  if (showDifficulties.total) {
+    chartLines.push({ dataKey: 'total', name: 'Total', stroke: '#3b82f6' });
+  }
 
   const toggleDifficulty = (difficulty: keyof typeof showDifficulties) => {
     setShowDifficulties(prev => ({
@@ -185,8 +180,9 @@ export function PerformanceChart({
         <div className="h-[300px]">
           <LineChart
             data={chartData}
-            config={chartConfig}
-            className="h-full"
+            lines={chartLines}
+            xAxisKey="date"
+            height={300}
           />
         </div>
 

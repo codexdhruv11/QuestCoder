@@ -127,8 +127,12 @@ badgeSchema.statics.checkUserEligibility = async function(badgeId: mongoose.Type
   
   switch (criteria.type) {
     case 'problems_solved': {
-      const totalSolved = userProgress.activityLog?.length || 0
-      return totalSolved >= criteria.value
+      if (criteria.additionalData?.requireAllDifficulties) {
+        const diffs = new Set((userProgress.activityLog||[]).filter((l: any) => l.type === 'problem_solved').map((l: any) => l.metadata?.difficulty))
+        return ['Easy','Medium','Hard'].every(d => diffs.has(d))
+      }
+      const total = (userProgress.activityLog||[]).filter((l: any) => l.type === 'problem_solved').length
+      return total >= criteria.value
     }
     
     case 'streak_days': {
@@ -136,34 +140,24 @@ badgeSchema.statics.checkUserEligibility = async function(badgeId: mongoose.Type
     }
     
     case 'patterns_completed': {
-      const completedPatterns = userProgress.patternsProgress?.filter((p: any) => 
+      const completedPatterns = userProgress.patternProgress?.filter((p: any) => 
         p.problems?.every((prob: any) => prob.completed)
       )?.length || 0
       return completedPatterns >= criteria.value
     }
     
     case 'difficulty_solved': {
-      const targetDifficulty = criteria.additionalData?.difficulty
-      if (!targetDifficulty) return false
-      
-      const solvedOfDifficulty = userProgress.activityLog?.filter((log: any) => 
-        log.difficulty === targetDifficulty
-      )?.length || 0
-      return solvedOfDifficulty >= criteria.value
+      const target = criteria.additionalData?.difficulty
+      if (!target) return false
+      const solved = (userProgress.activityLog||[]).filter((l: any) => l.type === 'problem_solved' && l.metadata?.difficulty === target).length
+      return solved >= criteria.value
     }
     
     case 'daily_problems': {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      
-      const todaysSolved = userProgress.activityLog?.filter((log: any) => {
-        const logDate = new Date(log.completedAt)
-        return logDate >= today && logDate < tomorrow
-      })?.length || 0
-      
-      return todaysSolved >= criteria.value
+      const start = new Date(); start.setHours(0,0,0,0)
+      const end = new Date(start); end.setDate(end.getDate()+1)
+      const count = (userProgress.activityLog||[]).filter((l: any) => l.type === 'problem_solved' && l.date && new Date(l.date) >= start && new Date(l.date) < end).length
+      return count >= criteria.value
     }
     
     case 'level_reached': {

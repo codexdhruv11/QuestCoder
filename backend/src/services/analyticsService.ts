@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 import UserProgress from '@/models/UserProgress'
-import { PatternService } from '@/services/patternService'
+import PatternService from '@/services/patternService'
 import { logger } from '@/utils/logger'
 
 export interface ChartDataPoint {

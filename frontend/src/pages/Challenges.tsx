@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChallengeCard } from '@/components/community/ChallengeCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocketSubscription } from '@/hooks/useSocket';
-import { api } from '@/lib/api';
+import { challengesAPI } from '@/lib/api';
 import { Challenge } from '@/types';
 import { 
   Search, 
@@ -37,13 +37,11 @@ export default function Challenges() {
   const fetchChallenges = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/community/challenges', {
-        params: {
-          filter: filter === 'all' ? undefined : filter,
-          search: searchQuery || undefined,
-        },
+      const data = await challengesAPI.getChallenges({
+        filter: filter === 'all' ? undefined : filter,
+        search: searchQuery || undefined,
       });
-      setChallenges(response.data.challenges);
+      setChallenges(data.challenges);
     } catch (error) {
       console.error('Error fetching challenges:', error);
     } finally {
@@ -93,7 +91,7 @@ export default function Challenges() {
 
   const handleJoinChallenge = async (challengeId: string) => {
     try {
-      await api.post(`/community/challenges/${challengeId}/join`);
+      await challengesAPI.joinChallenge(challengeId);
       await fetchChallenges(); // Refresh challenges
     } catch (error) {
       console.error('Error joining challenge:', error);
@@ -102,7 +100,7 @@ export default function Challenges() {
 
   const handleLeaveChallenge = async (challengeId: string) => {
     try {
-      await api.post(`/community/challenges/${challengeId}/leave`);
+      await challengesAPI.leaveChallenge(challengeId);
       await fetchChallenges(); // Refresh challenges
     } catch (error) {
       console.error('Error leaving challenge:', error);

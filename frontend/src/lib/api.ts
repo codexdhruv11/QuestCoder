@@ -147,9 +147,9 @@ export const analyticsAPI = {
     return response.data
   },
   
-  getProgress: async (timeRange?: string) => {
-    const response = await api.get('/analytics/progress', { 
-      params: timeRange ? { timeRange } : undefined 
+  getProgress: async (period?: string, days?: number) => {
+    const response = await api.get('/analytics/progress', {
+      params: { period, days }
     })
     return response.data
   },

@@ -5,8 +5,14 @@ import { useAuth } from './AuthContext'
 interface SocketContextType {
   socket: Socket | null
   isConnected: boolean
-  joinRoom: (room: string) => void
-  leaveRoom: (room: string) => void
+  joinGroup: (groupId: string) => void
+  leaveGroup: (groupId: string) => void
+  joinChallenge: (challengeId: string) => void
+  leaveChallenge: (challengeId: string) => void
+  joinPattern: (patternId: string) => void
+  leavePattern: (patternId: string) => void
+  subscribeLeaderboard: (type: string) => void
+  unsubscribeLeaderboard: (type: string) => void
   emit: (event: string, data?: any) => void
   subscribe: (event: string, callback: (data: any) => void) => () => void
 }
@@ -87,15 +93,51 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
   }, [token, user])
 
-  const joinRoom = useCallback((room: string) => {
+  const joinGroup = useCallback((groupId: string) => {
     if (socket && isConnected) {
-      socket.emit('join_room', room)
+      socket.emit('join_group', groupId)
     }
   }, [socket, isConnected])
 
-  const leaveRoom = useCallback((room: string) => {
+  const leaveGroup = useCallback((groupId: string) => {
     if (socket && isConnected) {
-      socket.emit('leave_room', room)
+      socket.emit('leave_group', groupId)
+    }
+  }, [socket, isConnected])
+
+  const joinChallenge = useCallback((challengeId: string) => {
+    if (socket && isConnected) {
+      socket.emit('join_challenge', challengeId)
+    }
+  }, [socket, isConnected])
+
+  const leaveChallenge = useCallback((challengeId: string) => {
+    if (socket && isConnected) {
+      socket.emit('leave_challenge', challengeId)
+    }
+  }, [socket, isConnected])
+
+  const joinPattern = useCallback((patternId: string) => {
+    if (socket && isConnected) {
+      socket.emit('join_pattern', patternId)
+    }
+  }, [socket, isConnected])
+
+  const leavePattern = useCallback((patternId: string) => {
+    if (socket && isConnected) {
+      socket.emit('leave_pattern', patternId)
+    }
+  }, [socket, isConnected])
+
+  const subscribeLeaderboard = useCallback((type: string) => {
+    if (socket && isConnected) {
+      socket.emit('subscribe_leaderboard', type)
+    }
+  }, [socket, isConnected])
+
+  const unsubscribeLeaderboard = useCallback((type: string) => {
+    if (socket && isConnected) {
+      socket.emit('unsubscribe_leaderboard', type)
     }
   }, [socket, isConnected])
 
@@ -122,8 +164,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const value: SocketContextType = {
     socket,
     isConnected,
-    joinRoom,
-    leaveRoom,
+    joinGroup,
+    leaveGroup,
+    joinChallenge,
+    leaveChallenge,
+    joinPattern,
+    leavePattern,
+    subscribeLeaderboard,
+    unsubscribeLeaderboard,
     emit,
     subscribe
   }

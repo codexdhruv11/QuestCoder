@@ -4,7 +4,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { XpProgressBar, CompactXpProgressBar } from '@/components/gamification/XpProgressBar'
-import { LevelIndicator } from '@/components/gamification/LevelIndicator'
+import { LevelBadge } from '@/components/gamification/LevelBadge'
 import { 
   LayoutDashboard, 
   Target, 
@@ -118,10 +118,7 @@ export default function Layout() {
                 className="h-2"
               />
               <div className="flex items-center justify-between">
-                <LevelIndicator 
-                  level={userGamification.currentLevel}
-                  variant="compact"
-                />
+                <LevelBadge level={userGamification.currentLevel} />
                 <span className="text-xs text-muted-foreground">
                   {userGamification.totalXp} XP
                 </span>

@@ -325,3 +325,6 @@ export const CustomRadarChart = ({
     </div>
   )
 }
+
+// Export aliases for backward compatibility
+export { CustomLineChart as LineChart, CustomBarChart as BarChart, CustomPieChart as PieChart, CustomRadarChart as RadarChart }
