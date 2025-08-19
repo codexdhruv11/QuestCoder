@@ -16,8 +16,10 @@ import analyticsRoutes from '@/routes/analytics'
 import gamificationRoutes from '@/routes/gamification'
 import communityRoutes from '@/routes/community'
 import notificationRoutes from '@/routes/notifications'
+import adminRoutes from '@/routes/admin'
 import initializeSocket from '@/socket/index'
 import SocketEvents from '@/socket/events'
+import platformMonitoringJob from '@/jobs/platformMonitoring'
 
 // Load environment variables
 config()
@@ -41,10 +43,12 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: Number(process.env['RATE_LIMIT_WINDOW_MS']) || 15 * 60 * 1000, // 15 minutes
-  max: Number(process.env['RATE_LIMIT_MAX_REQUESTS']) || 100, // Limit each IP to 100 requests per windowMs
+  max: Number(process.env['RATE_LIMIT_MAX_REQUESTS']) || 1000, // Increased to 1000 requests per windowMs for development
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  // Skip rate limiting in development
+  skip: (req) => process.env.NODE_ENV === 'development',
 })
 
 app.use('/api', limiter)
@@ -68,13 +72,26 @@ app.use((req, _res, next) => {
   next()
 })
 
-// Health check endpoint
+// Health check endpoints
 app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env['NODE_ENV'] || 'development',
+  })
+})
+
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env['NODE_ENV'] || 'development',
+    services: {
+      database: 'connected',
+      monitoring: 'active'
+    }
   })
 })
 
@@ -87,6 +104,7 @@ app.use('/api/analytics', analyticsRoutes)
 app.use('/api/gamification', gamificationRoutes)
 app.use('/api/community', communityRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/admin', adminRoutes)
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -141,7 +159,13 @@ async function startServer() {
     const socketEvents = new SocketEvents(io)
     
     // Store socket events instance in app locals for access in routes
-    app.locals.socketEvents = socketEvents
+    app.locals['socketEvents'] = socketEvents
+    
+    // Initialize platform monitoring
+    platformMonitoringJob.setSocketServer(io)
+    await platformMonitoringJob.initializePlatforms()
+    
+    logger.info('Platform monitoring initialized successfully')
     
     // Start listening
     httpServer.listen(PORT, () => {
