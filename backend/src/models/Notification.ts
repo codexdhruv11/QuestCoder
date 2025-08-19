@@ -77,24 +77,24 @@ const notificationSchema = new Schema<INotification>(
 )
 
 // Instance method to mark notification as read
-notificationSchema.methods.markAsRead = async function(): Promise<void> {
-  if (!this.isRead) {
-    this.isRead = true
-    await this.save()
+notificationSchema.methods['markAsRead'] = async function(): Promise<void> {
+  if (!this['isRead']) {
+    this['isRead'] = true
+    await this['save']()
   }
 }
 
 // Instance method to check if notification is expired
-notificationSchema.methods.isExpired = function(): boolean {
-  if (!this.expiresAt) return false
-  return new Date() > this.expiresAt
+notificationSchema.methods['isExpired'] = function(): boolean {
+  if (!this['expiresAt']) return false
+  return new Date() > this['expiresAt']
 }
 
 // Pre-save middleware to set expiration date if not provided
 notificationSchema.pre('save', function(next) {
   if (this.isNew && !this.expiresAt) {
     // Default expiration: 30 days from creation
-    const expirationDays = Number(process.env.NOTIFICATION_CLEANUP_DAYS) || 30
+    const expirationDays = Number(process.env['NOTIFICATION_CLEANUP_DAYS']) || 30
     this.expiresAt = new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000)
   }
   next()
