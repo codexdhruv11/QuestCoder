@@ -4,7 +4,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { XpProgressBar, CompactXpProgressBar } from '@/components/gamification/XpProgressBar'
-import { LevelBadge } from '@/components/gamification/LevelBadge'
+import { LevelBadge } from '@/components/gamification/LevelIndicator'
 import { 
   LayoutDashboard, 
   Target, 
@@ -19,7 +19,7 @@ import {
   Bell
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
+import { gamificationAPI } from '@/lib/api'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -43,8 +43,8 @@ export default function Layout() {
   useEffect(() => {
     const fetchGamificationData = async () => {
       try {
-        const response = await api.get('/gamification/profile')
-        setUserGamification(response.data)
+        const data = await gamificationAPI.getProfile()
+        setUserGamification(data)
       } catch (error) {
         console.error('Error fetching gamification data:', error)
       }
@@ -115,6 +115,7 @@ export default function Layout() {
               <XpProgressBar 
                 currentXp={userGamification.totalXp} 
                 level={userGamification.currentLevel}
+                xpProgress={userGamification.xpProgress}
                 className="h-2"
               />
               <div className="flex items-center justify-between">
@@ -182,6 +183,7 @@ export default function Layout() {
               <CompactXpProgressBar 
                 currentXp={userGamification.totalXp} 
                 level={userGamification.currentLevel}
+                xpProgress={userGamification.xpProgress}
                 className="hidden md:flex"
               />
             )}
