@@ -1,0 +1,382 @@
+version: '3.8'
+
+services:
+  # Reverse Proxy with SSL termination
+  nginx:
+    image: nginx:alpine
+    container_name: questcoder-nginx-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - questcoder-prod-network
+    depends_on:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # MongoDB with production optimizations
+  mongodb:
+    image: mongo:6.0
+    container_name: questcoder-mongodb-prod
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME_FILE: /run/secrets/mongo_root_username
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-questcoder}
+    volumes:
+      - mongodb_prod_data:/data/db
+      - mongodb_prod_config:/data/configdb
+      - ./backup:/backup
+      - ./mongodb/mongod.conf:/etc/mongod.conf:ro
+    networks:
+      - questcoder-prod-network
+    command: ["mongod", "--config", "/etc/mongod.conf"]
+    secrets:
+      - mongo_root_username
+      - mongo_root_password
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Redis with persistence and clustering ready
+  redis:
+    image: redis:7-alpine
+    container_name: questcoder-redis-prod
+    restart: unless-stopped
+    command: >
+      redis-server 
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_prod_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - questcoder-prod-network
+    secrets:
+      - redis_password
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Backend API with production optimizations
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: production
+    container_name: questcoder-backend-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME:-questcoder}?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://yourdomain.com}
+      LOG_LEVEL: ${LOG_LEVEL:-warn}
+      LOG_DIR: /app/logs
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      SESSION_SECRET_FILE: /run/secrets/session_secret
+      ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
+    volumes:
+      - backend_logs:/app/logs
+      - backend_uploads:/app/uploads
+      - backend_temp:/app/temp
+    networks:
+      - questcoder-prod-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    secrets:
+      - jwt_secret
+      - session_secret
+      - encryption_key
+      - mongo_root_password
+      - redis_password
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); const req = http.request({host: 'localhost', port: 5000, path: '/api/health'}, res => process.exit(res.statusCode === 200 ? 0 : 1)); req.on('error', () => process.exit(1)); req.end();"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # Frontend with CDN-ready setup
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: production
+    container_name: questcoder-frontend-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      VITE_API_URL: ${VITE_API_URL:-https://api.yourdomain.com}
+      VITE_SOCKET_URL: ${VITE_SOCKET_URL:-wss://api.yourdomain.com}
+      VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+      VITE_GA_TRACKING_ID: ${VITE_GA_TRACKING_ID:-}
+    networks:
+      - questcoder-prod-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # MongoDB backup service
+  mongodb-backup:
+    image: mongo:6.0
+    container_name: questcoder-backup-prod
+    restart: "no"
+    environment:
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_DB: ${MONGO_DB_NAME:-questcoder}
+      MONGO_USERNAME: admin
+      MONGO_PASSWORD_FILE: /run/secrets/mongo_root_password
+      BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+      BACKUP_RETENTION_DAYS: 30
+    volumes:
+      - ./backup:/backup
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
+    networks:
+      - questcoder-prod-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    secrets:
+      - mongo_root_password
+    command: ["sh", "-c", "chmod +x /usr/local/bin/backup.sh && crond -f"]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: questcoder-prometheus-prod
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - questcoder-prod-network
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Grafana for metrics visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: questcoder-grafana-prod
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD_FILE: /run/secrets/grafana_admin_password
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - questcoder-prod-network
+    depends_on:
+      - prometheus
+    secrets:
+      - grafana_admin_password
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+networks:
+  questcoder-prod-network:
+    driver: bridge
+    name: questcoder-prod-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  mongodb_prod_data:
+    name: questcoder-mongodb-prod-data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/questcoder/data/mongodb
+  mongodb_prod_config:
+    name: questcoder-mongodb-prod-config
+  redis_prod_data:
+    name: questcoder-redis-prod-data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/questcoder/data/redis
+  backend_logs:
+    name: questcoder-backend-logs
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/questcoder/logs/backend
+  backend_uploads:
+    name: questcoder-backend-uploads
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/questcoder/data/uploads
+  backend_temp:
+    name: questcoder-backend-temp
+  nginx_cache:
+    name: questcoder-nginx-cache
+  prometheus_data:
+    name: questcoder-prometheus-data
+  grafana_data:
+    name: questcoder-grafana-data
+
+# Production secrets
+secrets:
+  mongo_root_username:
+    file: ./secrets/mongo_root_username.txt
+  mongo_root_password:
+    file: ./secrets/mongo_root_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  session_secret:
+    file: ./secrets/session_secret.txt
+  encryption_key:
+    file: ./secrets/encryption_key.txt
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password.txt
+
+# Production configuration
+configs:
+  nginx_config:
+    file: ./nginx/nginx.prod.conf
+  mongodb_config:
+    file: ./mongodb/mongod.prod.conf
+  redis_config:
+    file: ./redis/redis.prod.conf
+
