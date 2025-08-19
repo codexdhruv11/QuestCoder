@@ -13,6 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LevelBadge } from '@/components/gamification/LevelIndicator'
+import { communityAPI } from '@/lib/api'
+import { useSocketRoom, useSocketSubscription } from '@/hooks/useSocket'
 import { 
   Users, 
   Plus, 
@@ -36,42 +38,47 @@ import {
 } from 'lucide-react'
 
 interface StudyGroup {
-  id: string
+  _id: string
+  id?: string  // For compatibility
   name: string
   description: string
-  privacy: 'public' | 'private'
-  memberCount: number
-  maxMembers: number
-  inviteCode: string
+  isPrivate: boolean
+  privacy?: 'public' | 'private'  // For UI compatibility
+  memberCount?: number
+  maxMembers?: number
+  inviteCode?: string
   createdAt: Date
-  creator: {
+  ownerId: string
+  creator?: {
     id: string
     username: string
     avatar?: string
   }
   members: {
-    id: string
-    username: string
+    userId: string
+    id?: string  // For compatibility
+    username?: string
     avatar?: string
-    level: number
+    level?: number
     role: 'owner' | 'admin' | 'member'
     joinedAt: Date
-    xp: number
-    problemsSolved: number
+    xp?: number
+    problemsSolved?: number
   }[]
-  stats: {
+  stats?: {
     totalXP: number
     totalProblemsSloved: number
     averageLevel: number
     completionRate: number
   }
-  recentActivity: {
+  recentActivity?: {
     type: 'join' | 'solve' | 'levelUp' | 'badge'
     user: string
     description: string
     timestamp: Date
   }[]
-  tags: string[]
+  targetPatterns?: string[]
+  tags?: string[]  // For UI compatibility
 }
 
 interface StudyGroupsData {
@@ -116,11 +123,11 @@ const StudyGroupCard: React.FC<{
                 {group.name}
               </CardTitle>
               <div className="flex items-center space-x-2 mt-1">
-                <Badge variant={group.privacy === 'public' ? 'default' : 'secondary'}>
-                  {group.privacy}
+                <Badge variant={group.isPrivate ? 'secondary' : 'default'}>
+                  {group.isPrivate ? 'private' : 'public'}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  {group.memberCount}/{group.maxMembers} members
+                  {group.members?.length || 0} members
                 </span>
               </div>
             </div>
@@ -129,7 +136,7 @@ const StudyGroupCard: React.FC<{
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onManage?.(group.id)}
+                onClick={() => onManage?.(group._id)}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -143,44 +150,39 @@ const StudyGroupCard: React.FC<{
             {group.description}
           </p>
 
-          {/* Tags */}
-          {group.tags.length > 0 && (
+          {/* Target Patterns */}
+          {group.targetPatterns && group.targetPatterns.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {group.tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  {tag}
+              {group.targetPatterns.slice(0, 3).map((pattern) => (
+                <Badge key={pattern} variant="outline" className="text-xs">
+                  {pattern}
                 </Badge>
               ))}
-              {group.tags.length > 3 && (
+              {group.targetPatterns.length > 3 && (
                 <Badge variant="outline" className="text-xs">
-                  +{group.tags.length - 3}
+                  +{group.targetPatterns.length - 3}
                 </Badge>
               )}
             </div>
           )}
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 py-3 border-t border-b">
+          {/* Member Count */}
+          <div className="py-3 border-t border-b">
             <div className="text-center">
-              <p className="text-lg font-semibold">{group.stats.totalXP.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Total XP</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold">{Math.round(group.stats.completionRate)}%</p>
-              <p className="text-xs text-muted-foreground">Completion Rate</p>
+              <p className="text-lg font-semibold">{group.members?.length || 0}</p>
+              <p className="text-xs text-muted-foreground">Members</p>
             </div>
           </div>
 
-          {/* Creator */}
+          {/* Owner */}
           <div className="flex items-center space-x-2">
             <Avatar className="h-6 w-6">
-              <AvatarImage src={group.creator.avatar} />
               <AvatarFallback className="text-xs">
-                {group.creator.username.slice(0, 2).toUpperCase()}
+                OW
               </AvatarFallback>
             </Avatar>
             <span className="text-sm text-muted-foreground">
-              Created by {group.creator.username}
+              Group Owner
             </span>
           </div>
 
@@ -191,7 +193,7 @@ const StudyGroupCard: React.FC<{
               className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Users className="h-4 w-4" />
-              <span>View Members ({group.memberCount})</span>
+              <span>View Members ({group.members?.length || 0})</span>
             </button>
 
             <AnimatePresence>
@@ -202,24 +204,22 @@ const StudyGroupCard: React.FC<{
                   exit={{ opacity: 0, height: 0 }}
                   className="space-y-2"
                 >
-                  {group.members.slice(0, 5).map((member) => (
-                    <div key={member.id} className="flex items-center space-x-2">
+                  {group.members?.slice(0, 5).map((member) => (
+                    <div key={member.userId} className="flex items-center space-x-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={member.avatar} />
                         <AvatarFallback className="text-xs">
-                          {member.username.slice(0, 2).toUpperCase()}
+                          {member.userId.toString().slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <LevelBadge level={member.level} size="sm" />
-                      <span className="text-sm flex-1">{member.username}</span>
+                      <span className="text-sm flex-1">Member</span>
                       <Badge className={`text-xs ${roleColors[member.role]}`}>
                         {member.role}
                       </Badge>
                     </div>
                   ))}
-                  {group.memberCount > 5 && (
+                  {(group.members?.length || 0) > 5 && (
                     <p className="text-xs text-muted-foreground text-center">
-                      +{group.memberCount - 5} more members
+                      +{(group.members?.length || 0) - 5} more members
                     </p>
                   )}
                 </motion.div>
@@ -238,22 +238,22 @@ const StudyGroupCard: React.FC<{
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => onLeave?.(group.id)}
+                  onClick={() => onLeave?.(group._id)}
                   className="text-red-600 hover:text-red-700"
                 >
                   <UserMinus className="h-4 w-4" />
                 </Button>
               </>
             ) : (
-              <Button 
-                size="sm" 
-                className="flex-1"
-                onClick={() => onJoin?.(group.id)}
-                disabled={group.memberCount >= group.maxMembers}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                {group.memberCount >= group.maxMembers ? 'Full' : 'Join Group'}
-              </Button>
+                <Button 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => onJoin?.(group._id)}
+                  disabled={false}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Join Group
+                </Button>
             )}
           </div>
         </CardContent>
@@ -271,17 +271,16 @@ const CreateGroupDialog: React.FC<{
     name: '',
     description: '',
     privacy: 'public',
-    maxMembers: 20,
-    tags: ''
+    targetPatterns: ''
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit({
       ...formData,
-      tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+      targetPatterns: formData.targetPatterns.split(',').map(t => t.trim()).filter(Boolean)
     })
-    setFormData({ name: '', description: '', privacy: 'public', maxMembers: 20, tags: '' })
+    setFormData({ name: '', description: '', privacy: 'public', targetPatterns: '' })
     onOpenChange(false)
   }
 
@@ -314,43 +313,29 @@ const CreateGroupDialog: React.FC<{
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="privacy">Privacy</Label>
-              <Select 
-                value={formData.privacy} 
-                onValueChange={(value) => setFormData({ ...formData, privacy: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="maxMembers">Max Members</Label>
-              <Input
-                id="maxMembers"
-                type="number"
-                min="2"
-                max="100"
-                value={formData.maxMembers}
-                onChange={(e) => setFormData({ ...formData, maxMembers: parseInt(e.target.value) })}
-              />
-            </div>
+          <div>
+            <Label htmlFor="privacy">Privacy</Label>
+            <Select 
+              value={formData.privacy} 
+              onValueChange={(value) => setFormData({ ...formData, privacy: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <Label htmlFor="tags">Tags (comma separated)</Label>
+            <Label htmlFor="targetPatterns">Target Patterns (comma separated)</Label>
             <Input
-              id="tags"
-              value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              placeholder="algorithms, data structures, leetcode"
+              id="targetPatterns"
+              value={formData.targetPatterns}
+              onChange={(e) => setFormData({ ...formData, targetPatterns: e.target.value })}
+              placeholder="Two Pointers, Sliding Window, Dynamic Programming"
             />
           </div>
 
@@ -379,18 +364,34 @@ const StudyGroups: React.FC = () => {
     fetchStudyGroups()
   }, [])
 
+  // Note: Group-specific rooms should be joined when viewing individual groups
+  // Global group discovery relies on REST polling for now
+
+  // Listen for group activity updates with debounced refresh
+  const debouncedRefresh = React.useRef<NodeJS.Timeout>()
+  useSocketSubscription('group_activity', (activityData: { groupId: string; type: string; userId?: string }) => {
+    // Clear existing timeout
+    if (debouncedRefresh.current) {
+      clearTimeout(debouncedRefresh.current)
+    }
+    
+    // Debounce refresh to avoid API spam
+    debouncedRefresh.current = setTimeout(() => {
+      fetchStudyGroups()
+    }, 1000) // 1 second debounce
+  })
+
   const fetchStudyGroups = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/community/study-groups', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-
-      if (!response.ok) throw new Error('Failed to fetch study groups')
-
-      const studyGroupsData = await response.json()
+      const response = await communityAPI.getGroups()
+      
+      // Transform the data structure as needed
+      const studyGroupsData = {
+        myGroups: [], // Backend doesn't separate user groups yet
+        availableGroups: response.groups || [],
+        invitations: [] // Backend doesn't have invitations endpoint yet
+      }
       setData(studyGroupsData)
     } catch (error) {
       console.error('Error fetching study groups:', error)
@@ -406,16 +407,12 @@ const StudyGroups: React.FC = () => {
 
   const handleCreateGroup = async (groupData: any) => {
     try {
-      const response = await fetch('/api/community/study-groups', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(groupData)
+      await communityAPI.createGroup({
+        name: groupData.name,
+        description: groupData.description,
+        isPrivate: groupData.privacy === 'private',
+        targetPatterns: groupData.targetPatterns
       })
-
-      if (!response.ok) throw new Error('Failed to create group')
 
       toast({
         title: "Success",
@@ -434,14 +431,7 @@ const StudyGroups: React.FC = () => {
 
   const handleJoinGroup = async (groupId: string) => {
     try {
-      const response = await fetch(`/api/community/study-groups/${groupId}/join`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-
-      if (!response.ok) throw new Error('Failed to join group')
+      await communityAPI.joinGroup(groupId)
 
       toast({
         title: "Success",
@@ -460,14 +450,7 @@ const StudyGroups: React.FC = () => {
 
   const handleLeaveGroup = async (groupId: string) => {
     try {
-      const response = await fetch(`/api/community/study-groups/${groupId}/leave`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-
-      if (!response.ok) throw new Error('Failed to leave group')
+      await communityAPI.leaveGroup(groupId)
 
       toast({
         title: "Success",
@@ -496,16 +479,16 @@ const StudyGroups: React.FC = () => {
     return groups.filter(group => {
       const matchesSearch = group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            group.description.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesTags = filterTags.length === 0 || 
-                         filterTags.some(tag => group.tags.includes(tag))
-      return matchesSearch && matchesTags
+      const matchesPatterns = filterTags.length === 0 || 
+                             filterTags.some(tag => group.targetPatterns?.includes(tag))
+      return matchesSearch && matchesPatterns
     }).sort((a, b) => {
       switch (sortBy) {
         case 'members':
-          return b.memberCount - a.memberCount
+          return (b.members?.length || 0) - (a.members?.length || 0)
         case 'activity':
-          return new Date(b.recentActivity[0]?.timestamp || 0).getTime() - 
-                 new Date(a.recentActivity[0]?.timestamp || 0).getTime()
+          return new Date(b.updatedAt || 0).getTime() - 
+                 new Date(a.updatedAt || 0).getTime()
         case 'name':
           return a.name.localeCompare(b.name)
         default:
@@ -596,7 +579,7 @@ const StudyGroups: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredGroups(data.myGroups).map((group) => (
                 <StudyGroupCard
-                  key={group.id}
+                  key={group._id}
                   group={group}
                   isJoined={true}
                   onLeave={handleLeaveGroup}
@@ -623,7 +606,7 @@ const StudyGroups: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredGroups(data.availableGroups).map((group) => (
               <StudyGroupCard
-                key={group.id}
+                key={group._id}
                 group={group}
                 isJoined={false}
                 onJoin={handleJoinGroup}
@@ -663,7 +646,7 @@ const StudyGroups: React.FC = () => {
                       <div className="flex space-x-2">
                         <Button 
                           size="sm" 
-                          onClick={() => handleJoinGroup(invitation.group.id)}
+                          onClick={() => handleJoinGroup(invitation.group._id)}
                         >
                           Accept
                         </Button>

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 interface XpProgressBarProps {
   currentXp: number
   level: number
+  xpProgress?: { current: number; required: number; percentage: number }
   className?: string
   showDetails?: boolean
   animated?: boolean
@@ -14,18 +15,15 @@ interface XpProgressBarProps {
 export const XpProgressBar: React.FC<XpProgressBarProps> = ({
   currentXp,
   level,
+  xpProgress,
   className,
   showDetails = true,
   animated = true
 }) => {
-  // Calculate XP progress for current level
-  const baseXp = 100 // Should match backend LEVEL_XP_BASE
-  const currentLevelXp = (level - 1) * (level - 1) * baseXp
-  const nextLevelXp = level * level * baseXp
-  const xpInCurrentLevel = currentXp - currentLevelXp
-  const xpRequiredForLevel = nextLevelXp - currentLevelXp
-  
-  const progressPercentage = xpRequiredForLevel > 0 ? Math.min(100, (xpInCurrentLevel / xpRequiredForLevel) * 100) : 100
+  // Use server-provided XP progress data or fallback to basic calculation
+  const xpInCurrentLevel = xpProgress?.current ?? 0
+  const xpRequiredForLevel = xpProgress?.required ?? 100
+  const progressPercentage = xpProgress?.percentage ?? 0
 
   const ProgressComponent = animated ? motion.div : 'div'
   const progressProps = animated ? {
@@ -109,17 +107,12 @@ export const XpProgressBar: React.FC<XpProgressBarProps> = ({
 export const CompactXpProgressBar: React.FC<Omit<XpProgressBarProps, 'showDetails'>> = ({
   currentXp,
   level,
+  xpProgress,
   className,
   animated = true
 }) => {
-  // Calculate XP progress for current level  
-  const baseXp = 100
-  const currentLevelXp = (level - 1) * (level - 1) * baseXp
-  const nextLevelXp = level * level * baseXp
-  const xpInCurrentLevel = currentXp - currentLevelXp
-  const xpRequiredForLevel = nextLevelXp - currentLevelXp
-  
-  const progressPercentage = xpRequiredForLevel > 0 ? Math.min(100, (xpInCurrentLevel / xpRequiredForLevel) * 100) : 100
+  // Use server-provided XP progress data or fallback to basic calculation
+  const progressPercentage = xpProgress?.percentage ?? 0
 
   return (
     <div className={cn("flex items-center space-x-3", className)}>

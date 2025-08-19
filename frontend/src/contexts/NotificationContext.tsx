@@ -51,7 +51,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   }, [])
 
   const showXpGain = useCallback((xp: number, level?: number) => {
-    toast.success(`+${xp} XP gained!${level ? ` Level ${level}!` : ''}`, {
+    toast.success(`+${xp} XP gained!${level ? ` → Level ${level}!` : ''}`, {
       duration: 3000,
       position: 'top-right',
       icon: '⚡',

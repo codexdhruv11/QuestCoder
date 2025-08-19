@@ -1,10 +1,13 @@
-import { Server as SocketIOServer } from 'socket.io'
+import { Server as SocketIOServer, Socket } from 'socket.io'
 import { Server as HttpServer } from 'http'
 import jwt from 'jsonwebtoken'
 import { logger } from '@/utils/logger'
 import NotificationService from '@/services/notificationService'
+import StudyGroup from '@/models/StudyGroup'
+import Challenge from '@/models/Challenge'
+import mongoose from 'mongoose'
 
-interface AuthenticatedSocket extends SocketIOServer {
+interface AuthenticatedSocket extends Socket {
   userId?: string
   username?: string
 }
@@ -12,7 +15,7 @@ interface AuthenticatedSocket extends SocketIOServer {
 export function initializeSocket(httpServer: HttpServer): SocketIOServer {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.SOCKET_IO_CORS_ORIGIN || "http://localhost:3000",
+      origin: process.env.SOCKET_IO_CORS_ORIGIN || process.env.CORS_ORIGIN || "http://localhost:5173",
       methods: ["GET", "POST"],
       credentials: true
     },
@@ -23,7 +26,7 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
   NotificationService.setSocketInstance(io)
 
   // JWT Authentication middleware
-  io.use(async (socket: any, next) => {
+  io.use(async (socket: AuthenticatedSocket, next) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '')
       
@@ -37,7 +40,7 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
       }
 
       const decoded = jwt.verify(token, jwtSecret) as any
-      socket.userId = decoded.userId
+      socket.userId = decoded.userId || decoded._id
       socket.username = decoded.username
 
       logger.info(`Socket authenticated for user: ${socket.username} (${socket.userId})`)
@@ -50,7 +53,7 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
   })
 
   // Connection handling
-  io.on('connection', (socket: any) => {
+  io.on('connection', (socket: AuthenticatedSocket) => {
     const userId = socket.userId
     const username = socket.username
 
@@ -71,10 +74,38 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
       logger.info(`User ${username} left pattern room: ${patternId}`)
     })
 
-    // Handle joining study group rooms
-    socket.on('join_group', (groupId: string) => {
-      socket.join(`group_${groupId}`)
-      logger.info(`User ${username} joined group room: ${groupId}`)
+    // Handle joining study group rooms with authorization
+    socket.on('join_group', async (groupId: string) => {
+      try {
+        if (!mongoose.Types.ObjectId.isValid(groupId)) {
+          socket.emit('join_group_error', { message: 'Invalid group ID' })
+          return
+        }
+
+        const group = await StudyGroup.findById(groupId).lean()
+        if (!group) {
+          socket.emit('join_group_error', { message: 'Group not found' })
+          return
+        }
+
+        const userObjectId = new mongoose.Types.ObjectId(userId)
+        const isMember = group.ownerId.equals(userObjectId) || 
+                        group.members.some(m => m.userId.equals(userObjectId))
+
+        if (group.isPrivate && !isMember) {
+          socket.emit('join_group_error', { message: 'Access denied to private group' })
+          logger.warn(`User ${username} denied access to private group: ${groupId}`)
+          return
+        }
+
+        socket.join(`group_${groupId}`)
+        socket.emit('join_group_success', { groupId, groupName: group.name })
+        logger.info(`User ${username} joined group room: ${groupId}`)
+
+      } catch (error) {
+        logger.error(`Error joining group ${groupId} for user ${username}:`, error)
+        socket.emit('join_group_error', { message: 'Failed to join group' })
+      }
     })
 
     // Handle leaving study group rooms
@@ -83,10 +114,44 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
       logger.info(`User ${username} left group room: ${groupId}`)
     })
 
-    // Handle joining challenge rooms
-    socket.on('join_challenge', (challengeId: string) => {
-      socket.join(`challenge_${challengeId}`)
-      logger.info(`User ${username} joined challenge room: ${challengeId}`)
+    // Handle joining challenge rooms with authorization
+    socket.on('join_challenge', async (challengeId: string) => {
+      try {
+        if (!mongoose.Types.ObjectId.isValid(challengeId)) {
+          socket.emit('join_challenge_error', { message: 'Invalid challenge ID' })
+          return
+        }
+
+        const challenge = await Challenge.findById(challengeId).lean()
+        if (!challenge) {
+          socket.emit('join_challenge_error', { message: 'Challenge not found' })
+          return
+        }
+
+        const userObjectId = new mongoose.Types.ObjectId(userId)
+        const isParticipant = challenge.participants.some(p => p.userId.equals(userObjectId))
+        const now = new Date()
+
+        if (!isParticipant && now >= challenge.startDate) {
+          socket.emit('join_challenge_error', { message: 'Cannot join challenge after it has started' })
+          logger.warn(`User ${username} denied access to started challenge: ${challengeId}`)
+          return
+        }
+
+        if (!isParticipant && !challenge.isPublic) {
+          socket.emit('join_challenge_error', { message: 'Access denied to private challenge' })
+          logger.warn(`User ${username} denied access to private challenge: ${challengeId}`)
+          return
+        }
+
+        socket.join(`challenge_${challengeId}`)
+        socket.emit('join_challenge_success', { challengeId, challengeTitle: challenge.title })
+        logger.info(`User ${username} joined challenge room: ${challengeId}`)
+
+      } catch (error) {
+        logger.error(`Error joining challenge ${challengeId} for user ${username}:`, error)
+        socket.emit('join_challenge_error', { message: 'Failed to join challenge' })
+      }
     })
 
     // Handle leaving challenge rooms

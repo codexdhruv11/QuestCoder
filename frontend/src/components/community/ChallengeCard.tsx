@@ -52,7 +52,7 @@ export function ChallengeCard({ challenge, currentUserId, onJoin, onLeave, class
 
   const calculateProgress = () => {
     if (!participant || !challenge.targetPatterns) return 0;
-    return Math.round((participant.completedProblems / challenge.targetPatterns.length) * 100);
+    return Math.round((participant.progress.problemsSolved / challenge.targetPatterns.length) * 100);
   };
 
   const handleJoinLeave = async () => {
@@ -73,12 +73,12 @@ export function ChallengeCard({ challenge, currentUserId, onJoin, onLeave, class
   };
 
   const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
+    switch (difficulty) {
+      case 'Easy':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'medium':
+      case 'Medium':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'hard':
+      case 'Hard':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
@@ -94,9 +94,9 @@ export function ChallengeCard({ challenge, currentUserId, onJoin, onLeave, class
           </CardTitle>
           <div className="flex items-center gap-1">
             {getStatusBadge()}
-            {challenge.difficulty && (
-              <Badge variant="outline" className={`text-xs ${getDifficultyColor(challenge.difficulty)}`}>
-                {challenge.difficulty}
+            {challenge.difficultyFilter && (
+              <Badge variant="outline" className={`text-xs ${getDifficultyColor(challenge.difficultyFilter)}`}>
+                {challenge.difficultyFilter}
               </Badge>
             )}
           </div>
@@ -152,28 +152,29 @@ export function ChallengeCard({ challenge, currentUserId, onJoin, onLeave, class
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Your Progress</span>
-              <span className="font-medium">{participant.completedProblems}/{challenge.targetPatterns.length}</span>
+              <span className="font-medium">{participant.progress.problemsSolved}/{challenge.targetPatterns.length}</span>
             </div>
             <Progress value={calculateProgress()} className="h-2" />
           </div>
         )}
 
-        {/* Prizes */}
-        {challenge.prizes && challenge.prizes.length > 0 && (
+        {/* Rewards */}
+        {challenge.rewards && challenge.rewards.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Trophy className="h-4 w-4" />
-              <span>Prizes</span>
+              <span>Rewards</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {challenge.prizes.slice(0, 3).map((prize, index) => (
+              {challenge.rewards.slice(0, 3).map((reward, index) => (
                 <Badge key={index} variant="outline" className="text-xs">
-                  {prize}
+                  {reward.type === 'xp' ? `${reward.value} XP` : reward.value}
+                  {reward.position && ` (${reward.position.replace('_', ' ')})`}
                 </Badge>
               ))}
-              {challenge.prizes.length > 3 && (
+              {challenge.rewards.length > 3 && (
                 <Badge variant="outline" className="text-xs">
-                  +{challenge.prizes.length - 3} more
+                  +{challenge.rewards.length - 3} more
                 </Badge>
               )}
             </div>

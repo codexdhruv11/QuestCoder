@@ -221,7 +221,11 @@ export function PredictiveInsights({
       <div className="h-[300px]">
         <BarChart
           data={patternChartData}
-          config={patternChartConfig}
+          bars={[
+            { dataKey: 'current', name: 'Current Mastery', fill: 'hsl(var(--chart-1))' },
+            { dataKey: 'projected', name: 'Projected Mastery', fill: 'hsl(var(--chart-2))' }
+          ]}
+          xAxisKey="name"
           className="h-full"
         />
       </div>
@@ -259,7 +263,10 @@ export function PredictiveInsights({
       <div className="h-[300px]">
         <BarChart
           data={milestoneChartData}
-          config={milestoneChartConfig}
+          bars={[
+            { dataKey: 'progress', name: 'Progress %', fill: 'hsl(var(--chart-3))' }
+          ]}
+          xAxisKey="name"
           className="h-full"
         />
       </div>

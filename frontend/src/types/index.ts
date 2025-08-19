@@ -261,19 +261,33 @@ export interface Challenge {
   description: string
   creatorId: string
   targetPatterns: string[]
-  difficulty: string
+  difficultyFilter?: 'Easy' | 'Medium' | 'Hard'
   startDate: string
   endDate: string
   participants: ChallengeParticipant[]
-  prizes: string[]
+  rewards: ChallengeReward[]
   isPublic: boolean
   status: 'upcoming' | 'active' | 'completed'
+  maxParticipants?: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ChallengeParticipant {
   userId: string
-  completedProblems: number
+  progress: {
+    problemsSolved: number
+    patternsCompleted: string[]
+    lastActivity?: string
+  }
   joinedAt: string
+  completedAt?: string
+}
+
+export interface ChallengeReward {
+  type: 'xp' | 'badge' | 'title'
+  value: string | number
+  position?: 'first' | 'top_3' | 'top_10' | 'all'
 }
 
 // Notification types

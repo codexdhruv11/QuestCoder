@@ -13,6 +13,8 @@ import { LevelBadge } from '@/components/gamification/LevelIndicator'
 import { CompactBadgeList } from '@/components/gamification/BadgeDisplay'
 import { gamificationAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { useSocket } from '@/contexts/SocketContext'
+import { useSocketSubscription } from '@/hooks/useSocket'
 import { 
   Trophy, 
   Medal, 
@@ -77,6 +79,13 @@ const timeFrames = {
   'weekly': 'This Week',
   'monthly': 'This Month',
   'allTime': 'All Time'
+}
+
+// Map UI timeframe values to API values
+const timeFrameMapping = {
+  'weekly': 'weekly',
+  'monthly': 'monthly', 
+  'allTime': 'all'
 }
 
 const leaderboardTypes = {
@@ -209,32 +218,150 @@ const Leaderboards: React.FC = () => {
     fetchLeaderboards()
   }, [timeFrame, selectedGroup])
 
+  // Subscribe to all leaderboard types for real-time updates
+  const { subscribeLeaderboard, unsubscribeLeaderboard } = useSocket()
+  
+  useEffect(() => {
+    // Subscribe to all three leaderboard types
+    subscribeLeaderboard('xp')
+    subscribeLeaderboard('problems')
+    subscribeLeaderboard('streak')
+
+    return () => {
+      // Unsubscribe on cleanup
+      unsubscribeLeaderboard('xp')
+      unsubscribeLeaderboard('problems')
+      unsubscribeLeaderboard('streak')
+    }
+  }, [subscribeLeaderboard, unsubscribeLeaderboard])
+
+  // Listen for leaderboard updates with debounced refresh
+  const debouncedRefresh = React.useRef<NodeJS.Timeout>()
+  useSocketSubscription('leaderboard_update', (updateData: { type: string; groupId?: string }) => {
+    // Clear existing timeout
+    if (debouncedRefresh.current) {
+      clearTimeout(debouncedRefresh.current)
+    }
+    
+    // Debounce refresh to avoid API spam
+    debouncedRefresh.current = setTimeout(() => {
+      // Only refresh if the update is for the current leaderboard
+      if (selectedGroup === 'global') {
+        fetchLeaderboards()
+      } else if (updateData.groupId === selectedGroup) {
+        fetchLeaderboards()
+      }
+    }, 1000) // 1 second debounce
+  })
+
   const fetchLeaderboards = async () => {
     setLoading(true)
     try {
-      const type = 'xp' // Default to XP leaderboard
-      const response = await gamificationAPI.getLeaderboard(
-        type,
-        selectedGroup !== 'global' ? selectedGroup : undefined
-      )
+      // Map functions for backend entry structure
+      const mapXp = (e: any): LeaderboardEntry => ({
+        userId: e.user._id,
+        username: e.user.username,
+        avatar: e.user.avatar,
+        rank: e.rank,
+        previousRank: undefined,
+        level: e.metadata?.level ?? 1,
+        xp: e.score,
+        problemsSolved: 0,
+        currentStreak: 0,
+        badges: [],
+        lastActive: e.metadata?.lastActive ?? new Date().toISOString(),
+      })
       
-      // Transform response to match expected shape
-      const leaderboardData = {
-        global: {
-          xp: response.entries || [],
-          problemsSolved: [],
-          streak: []
-        },
-        groups: {},
-        userRank: {
-          xp: response.currentUserRank || 0,
-          problemsSolved: 0,
-          streak: 0
-        },
-        timeFrame
+      const mapProblems = (e: any): LeaderboardEntry => ({
+        userId: e.user._id,
+        username: e.user.username,
+        avatar: e.user.avatar,
+        rank: e.rank,
+        previousRank: undefined,
+        level: 0,
+        xp: 0,
+        problemsSolved: e.score,
+        currentStreak: e.metadata?.streak ?? 0,
+        badges: [],
+        lastActive: e.metadata?.lastActive ?? new Date().toISOString(),
+      })
+      
+      const mapStreak = (e: any): LeaderboardEntry => ({
+        userId: e.user._id,
+        username: e.user.username,
+        avatar: e.user.avatar,
+        rank: e.rank,
+        previousRank: undefined,
+        level: 0,
+        xp: 0,
+        problemsSolved: 0,
+        currentStreak: e.score,
+        badges: [],
+        lastActive: e.metadata?.lastActive ?? new Date().toISOString(),
+      })
+
+      if (selectedGroup !== 'global') {
+        // Fetch group-specific leaderboard
+        const mappedTimeframe = timeFrameMapping[timeFrame as keyof typeof timeFrameMapping]
+        const response = await gamificationAPI.getLeaderboard(
+          'xp', // Default to XP for group leaderboards
+          selectedGroup,
+          mappedTimeframe
+        )
+        
+        // Map entries using the XP mapper - response contains the leaderboard data
+        const leaderboardEntries = (response?.entries || []).map(mapXp)
+        const currentUserRank = response?.currentUserRank || 0
+        
+        const leaderboardData = {
+          global: {
+            xp: [],
+            problemsSolved: [],
+            streak: []
+          },
+          groups: {
+            [selectedGroup]: {
+              name: response?.groupName || selectedGroup,
+              xp: leaderboardEntries,
+              problemsSolved: [],
+              streak: []
+            }
+          },
+          userRank: {
+            xp: currentUserRank,
+            problemsSolved: 0,
+            streak: 0
+          },
+          timeFrame
+        }
+        
+        setData(leaderboardData)
+      } else {
+        // Fetch all three leaderboard types for global view
+        const mappedTimeframe = timeFrameMapping[timeFrame as keyof typeof timeFrameMapping]
+        const [xpResponse, problemsResponse, streakResponse] = await Promise.all([
+          gamificationAPI.getLeaderboard('xp', undefined, mappedTimeframe),
+          gamificationAPI.getLeaderboard('problems', undefined, mappedTimeframe),
+          gamificationAPI.getLeaderboard('streak', undefined, mappedTimeframe)
+        ])
+        
+        const leaderboardData = {
+          global: {
+            xp: (xpResponse?.entries || []).map(mapXp),
+            problemsSolved: (problemsResponse?.entries || []).map(mapProblems),
+            streak: (streakResponse?.entries || []).map(mapStreak)
+          },
+          groups: {},
+          userRank: {
+            xp: xpResponse?.currentUserRank || 0,
+            problemsSolved: problemsResponse?.currentUserRank || 0,
+            streak: streakResponse?.currentUserRank || 0
+          },
+          timeFrame
+        }
+        
+        setData(leaderboardData)
       }
-      
-      setData(leaderboardData)
     } catch (error) {
       console.error('Error fetching leaderboards:', error)
       toast({
@@ -275,7 +402,7 @@ const Leaderboards: React.FC = () => {
 
   const currentLeaderboard = selectedGroup === 'global' 
     ? data.global 
-    : data.groups[selectedGroup]
+    : data.groups[selectedGroup] || { xp: [], problemsSolved: [], streak: [] }
 
   return (
     <div className="container mx-auto p-6 space-y-6">

@@ -11,7 +11,7 @@ import CodeforcesWidget from '@/components/widgets/CodeforcesWidget'
 import GitHubWidget from '@/components/widgets/GitHubWidget'
 import HackerEarthWidget from '@/components/widgets/HackerEarthWidget'
 import StreakTracker from '@/components/widgets/StreakTracker'
-import { api } from '@/lib/api'
+import { analyticsAPI, gamificationAPI } from '@/lib/api'
 import { LayoutDashboard, Target, TrendingUp, Calendar, Trophy, Zap, Users, BarChart3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -30,14 +30,26 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const [statsResponse, gamificationResponse] = await Promise.all([
-        api.get('/analytics/overview'),
-        api.get('/gamification/profile')
+      const [statsData, gamificationData] = await Promise.all([
+        analyticsAPI.getOverview(),
+        gamificationAPI.getProfile()
       ])
       
-      setStats(statsResponse.data)
-      setUserGamification(gamificationResponse.data)
-      setRecentBadges(gamificationResponse.data.unlockedBadges?.slice(-3) || [])
+      setStats(statsData)
+      setUserGamification(gamificationData)
+      
+      // Map unlocked badges to expected BadgeItem shape
+      const recentBadges = (gamificationData.unlockedBadges || []).slice(-3).map((b: any) => ({
+        id: b._id,
+        name: b.name,
+        description: b.description,
+        iconUrl: b.iconUrl,
+        rarity: b.rarity,
+        category: b.category,
+        isUnlocked: true,
+        unlockedAt: b.createdAt,
+      }))
+      setRecentBadges(recentBadges)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
       // Set fallback data for demo purposes
@@ -96,7 +108,13 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold flex items-center gap-2">
-                <LevelIndicator level={userGamification.currentLevel} variant="compact" />
+                <LevelIndicator 
+                  currentLevel={userGamification.currentLevel}
+                  currentXP={userGamification.totalXp}
+                  xpToNextLevel={userGamification.xpProgress?.required - userGamification.xpProgress?.current || 0}
+                  totalXPForCurrentLevel={userGamification.xpProgress?.required || 100}
+                  variant="compact" 
+                />
                 {userGamification.currentLevel}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -114,6 +132,7 @@ export default function Dashboard() {
               <XpProgressBar 
                 currentXp={userGamification.totalXp} 
                 level={userGamification.currentLevel}
+                xpProgress={userGamification.xpProgress}
                 className="h-3"
               />
               <p className="text-xs text-muted-foreground">

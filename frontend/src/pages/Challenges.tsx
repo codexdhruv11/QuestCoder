@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ChallengeCard } from '@/components/community/ChallengeCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSocketSubscription } from '@/hooks/useSocket';
-import { challengesAPI } from '@/lib/api';
+import { useSocket, useSocketSubscription } from '@/hooks/useSocket';
+import { communityAPI } from '@/lib/api';
 import { Challenge } from '@/types';
 import { 
   Search, 
@@ -23,6 +23,7 @@ type ChallengeFilter = 'all' | 'active' | 'upcoming' | 'completed' | 'joined';
 
 export default function Challenges() {
   const { user } = useAuth();
+  const { joinChallenge, leaveChallenge } = useSocket();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,14 +35,29 @@ export default function Challenges() {
     fetchChallenges();
   }, [filter]);
 
+  // Join challenge rooms for visible challenges
+  useEffect(() => {
+    // Join rooms for all visible challenges
+    challenges.forEach(challenge => {
+      joinChallenge(challenge._id);
+    });
+
+    // Cleanup: leave all challenge rooms on unmount or when challenges change
+    return () => {
+      challenges.forEach(challenge => {
+        leaveChallenge(challenge._id);
+      });
+    };
+  }, [challenges, joinChallenge, leaveChallenge]);
+
   const fetchChallenges = async () => {
     try {
       setLoading(true);
-      const data = await challengesAPI.getChallenges({
-        filter: filter === 'all' ? undefined : filter,
+      const data = await communityAPI.getChallenges({
+        status: filter === 'all' ? undefined : filter,
         search: searchQuery || undefined,
       });
-      setChallenges(data.challenges);
+      setChallenges(data.challenges || []);
     } catch (error) {
       console.error('Error fetching challenges:', error);
     } finally {
@@ -49,40 +65,70 @@ export default function Challenges() {
     }
   };
 
-  // Listen for real-time challenge updates
-  useSocketSubscription('challenge_updated', (data: { challengeId: string; challenge: Challenge }) => {
-    setChallenges(prev => 
-      prev.map(challenge => 
-        challenge._id === data.challengeId ? data.challenge : challenge
-      )
-    );
-  });
-
-  useSocketSubscription('challenge_joined', (data: { challengeId: string; userId: string }) => {
-    setChallenges(prev => 
-      prev.map(challenge => {
-        if (challenge._id === data.challengeId) {
-          return {
-            ...challenge,
-            participants: [
-              ...challenge.participants,
-              { userId: data.userId, completedProblems: 0, joinedAt: new Date().toISOString() }
-            ]
-          };
-        }
-        return challenge;
-      })
-    );
-  });
-
-  useSocketSubscription('challenge_left', (data: { challengeId: string; userId: string }) => {
+  // Listen for real-time challenge updates - single subscription
+  useSocketSubscription('challenge_update', (data: { 
+    challengeId: string;
+    update: {
+      type: 'participant_joined' | 'participant_left' | 'progress_update' | 'challenge_completed' | 'leaderboard_update';
+      userId?: string;
+      username?: string;
+      data?: any;
+      timestamp: string;
+    }
+  }) => {
     setChallenges(prev => 
       prev.map(challenge => {
         if (challenge._id === data.challengeId) {
-          return {
-            ...challenge,
-            participants: challenge.participants.filter(p => p.userId !== data.userId)
-          };
+          switch (data.update.type) {
+            case 'participant_joined':
+              if (data.update.userId) {
+                return {
+                  ...challenge,
+                  participants: [
+                    ...challenge.participants,
+                    { 
+                      userId: data.update.userId, 
+                      progress: {
+                        problemsSolved: 0,
+                        patternsCompleted: [],
+                        lastActivity: undefined
+                      },
+                      joinedAt: data.update.timestamp 
+                    }
+                  ]
+                };
+              }
+              break;
+            case 'participant_left':
+              if (data.update.userId) {
+                return {
+                  ...challenge,
+                  participants: challenge.participants.filter(p => p.userId !== data.update.userId)
+                };
+              }
+              break;
+            case 'progress_update':
+              if (data.update.data && data.update.userId) {
+                // Update the specific participant's progress
+                return {
+                  ...challenge,
+                  participants: challenge.participants.map(p => 
+                    p.userId === data.update.userId 
+                      ? { ...p, progress: { ...p.progress, ...data.update.data } }
+                      : p
+                  )
+                };
+              }
+              break;
+            case 'challenge_completed':
+              // Handle challenge completion
+              return { ...challenge, status: 'completed' as const };
+            case 'leaderboard_update':
+              // Handle leaderboard updates if needed
+              return challenge;
+            default:
+              return challenge;
+          }
         }
         return challenge;
       })
@@ -91,7 +137,7 @@ export default function Challenges() {
 
   const handleJoinChallenge = async (challengeId: string) => {
     try {
-      await challengesAPI.joinChallenge(challengeId);
+      await communityAPI.joinChallenge(challengeId);
       await fetchChallenges(); // Refresh challenges
     } catch (error) {
       console.error('Error joining challenge:', error);
@@ -100,7 +146,7 @@ export default function Challenges() {
 
   const handleLeaveChallenge = async (challengeId: string) => {
     try {
-      await challengesAPI.leaveChallenge(challengeId);
+      await communityAPI.leaveChallenge(challengeId);
       await fetchChallenges(); // Refresh challenges
     } catch (error) {
       console.error('Error leaving challenge:', error);
@@ -150,7 +196,7 @@ export default function Challenges() {
     completed: challenges.filter(c => {
       const participant = c.participants.find(p => p.userId === user?.id);
       return participant && c.targetPatterns && 
-             participant.completedProblems >= c.targetPatterns.length;
+             participant.progress.problemsSolved >= c.targetPatterns.length;
     }).length,
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useNotifications as useNotificationContext } from '@/contexts/NotificationContext';
 import { useSocketSubscription } from './useSocket';
 import { api } from '@/lib/api';
 import { Notification } from '@/types';
@@ -17,7 +17,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const { showNotification } = useNotification();
+  const { showInfo, showSuccess } = useNotificationContext();
 
   const { limit = 20, filter } = options;
 
@@ -32,8 +32,10 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
           ...filter,
         },
       });
-      setNotifications(response.data.notifications);
-      setUnreadCount(response.data.unreadCount);
+      // Fix API payload reading - backend returns data.data structure
+      const notificationsData = response.data.data || response.data;
+      setNotifications(notificationsData.notifications || []);
+      setUnreadCount(notificationsData.unreadCount || 0);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch notifications');
       console.error('Error fetching notifications:', err);
@@ -53,44 +55,26 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     setUnreadCount(prev => prev + 1);
     
     // Show toast notification
-    showNotification(data.title, {
-      description: data.message,
-      type: data.type === 'badge_unlocked' ? 'success' : 'info',
-      action: data.type === 'badge_unlocked' ? {
-        label: 'View Badge',
-        onClick: () => {
-          // Navigate to badges or show badge modal
-          console.log('View badge:', data.data);
-        }
-      } : undefined,
-    });
+    if (data.type === 'badge_unlocked') {
+      showSuccess(`${data.title}: ${data.message}`);
+    } else {
+      showInfo(`${data.title}: ${data.message}`);
+    }
   });
 
   // Listen for badge unlock events
-  useSocketSubscription('badge_unlocked', (data: { badge: any; xp: number }) => {
-    showNotification('🏆 Badge Unlocked!', {
-      description: `You earned "${data.badge.name}" (+${data.xp} XP)`,
-      type: 'success',
-      duration: 5000,
-    });
+  useSocketSubscription('badge_unlocked', (data: { badge: any; xpBonus: number }) => {
+    showSuccess(`🏆 Badge Unlocked! You earned "${data.badge.name}" (+${data.xpBonus} XP)`);
   });
 
   // Listen for level up events
-  useSocketSubscription('level_up', (data: { level: number; xp: number }) => {
-    showNotification('🎉 Level Up!', {
-      description: `Congratulations! You reached level ${data.level}`,
-      type: 'success',
-      duration: 5000,
-    });
+  useSocketSubscription('level_up', (data: { newLevel: number; totalXp: number }) => {
+    showSuccess(`🎉 Level Up! You reached level ${data.newLevel} (Total XP: ${data.totalXp})`);
   });
 
   // Listen for XP gain events
-  useSocketSubscription('xp_gained', (data: { amount: number; total: number; problem: string }) => {
-    showNotification('💪 XP Gained!', {
-      description: `+${data.amount} XP for solving "${data.problem}"`,
-      type: 'success',
-      duration: 3000,
-    });
+  useSocketSubscription('xp_gained', (data: { xpGained: number; totalXp: number; newLevel?: number }) => {
+    showSuccess(`💪 XP Gained! +${data.xpGained} XP${data.newLevel ? ` → Level ${data.newLevel}` : ''}`);
   });
 
   // Mark notification as read
