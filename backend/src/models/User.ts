@@ -9,6 +9,7 @@ export interface IUser extends Document {
   username: string
   email: string
   password: string
+  role: 'user' | 'admin'
   leetcodeHandle?: string
   codeforcesHandle?: string
   githubHandle?: string
@@ -27,6 +28,7 @@ export interface IUser extends Document {
   // Instance methods
   comparePassword(candidatePassword: string): Promise<boolean>
   toSafeObject(): Omit<IUser, 'password'>
+  isAdmin(): boolean
 }
 
 const userSchema = new Schema<IUser>(
@@ -53,6 +55,11 @@ const userSchema = new Schema<IUser>(
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
       select: false // Don't include password in queries by default
+    },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user'
     },
     leetcodeHandle: {
       type: String,
@@ -138,9 +145,9 @@ userSchema.pre('save', async function(next) {
 })
 
 // Instance method to check password
-userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+userSchema.methods['comparePassword'] = async function(candidatePassword: string): Promise<boolean> {
   try {
-    return await bcrypt.compare(candidatePassword, this.password)
+    return await bcrypt.compare(candidatePassword, this['password'])
   } catch (error) {
     logger.error('Password comparison failed:', error)
     return false
@@ -148,10 +155,15 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
 }
 
 // Instance method to get safe user object (without password)
-userSchema.methods.toSafeObject = function() {
-  const userObject = this.toObject()
+userSchema.methods['toSafeObject'] = function() {
+  const userObject = this['toObject']()
   delete userObject.password
   return userObject
+}
+
+// Instance method to check if user is admin
+userSchema.methods['isAdmin'] = function(): boolean {
+  return this['role'] === 'admin'
 }
 
 // Indexes for better query performance
@@ -159,6 +171,7 @@ userSchema.index({ email: 1 })
 userSchema.index({ username: 1 })
 userSchema.index({ createdAt: -1 })
 userSchema.index({ isActive: 1 })
+userSchema.index({ role: 1 })
 
 // Compound index for platform handles
 userSchema.index({ 

@@ -35,14 +35,14 @@ router.get('/overview', async (req: Request, res: Response) => {
  * GET /analytics/progress
  * Get time-series progress data
  */
-router.get('/progress', async (req: Request, res: Response) => {
+router.get('/progress', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { period = 'daily', days = '30' } = req.query
     
     const validPeriods = ['daily', 'weekly', 'monthly']
     if (!validPeriods.includes(period as string)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid period. Must be daily, weekly, or monthly'
       })
@@ -50,7 +50,7 @@ router.get('/progress', async (req: Request, res: Response) => {
 
     const daysNumber = parseInt(days as string)
     if (isNaN(daysNumber) || daysNumber < 1 || daysNumber > 365) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid days parameter. Must be between 1 and 365'
       })
@@ -192,7 +192,7 @@ router.get('/summary', async (req: Request, res: Response) => {
 router.get('/export', async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId(req.user!._id)
-    const { format = 'csv', timeRange = '30d' } = req.query
+    const { format = 'csv' } = req.query
     
     // Get analytics data
     const [overview, patterns] = await Promise.all([
