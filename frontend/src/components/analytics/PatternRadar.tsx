@@ -61,7 +61,7 @@ export function PatternRadar({
   const filteredData = data
     .filter(item => selectedPatterns.includes(item.pattern))
     .map(item => ({
-      pattern: item.pattern.length > 15 ? item.pattern.substring(0, 15) + '...' : item.pattern,
+      // pattern: item.pattern.length > 15 ? item.pattern.substring(0, 15) + '...' : item.pattern,
       fullPattern: item.pattern,
       current: getDataValue(item),
       ...item,
@@ -79,18 +79,18 @@ export function PatternRadar({
     };
   });
 
-  const chartConfig = {
-    current: {
-      label: "Your Progress",
-      color: "hsl(var(--chart-1))",
-    },
-    ...(showComparison && {
-      comparison: {
-        label: "Average",
-        color: "hsl(var(--chart-2))",
-      },
-    }),
-  };
+  // const chartConfig = {
+  //   userData: {
+  //     label: "Your Progress",
+  //     color: "hsl(var(--chart-1))",
+  //   },
+  //   ...(showComparison && {
+  //     avgData: {
+  //       label: "Average",
+  //       color: "hsl(var(--chart-2))",
+  //     },
+  //   }),
+  // };
 
   const togglePattern = (pattern: string) => {
     setSelectedPatterns(prev => {
@@ -106,8 +106,8 @@ export function PatternRadar({
   // Calculate overall statistics
   const overallStats = {
     averageMastery: data.reduce((sum, item) => sum + item.mastery, 0) / data.length,
-    topPattern: data.reduce((max, item) => item.mastery > max.mastery ? item : max, data[0]),
-    weakestPattern: data.reduce((min, item) => item.mastery < min.mastery ? item : min, data[0]),
+    topPattern: data.reduce((max, item) => item.mastery > (max?.mastery || 0) ? item : max, data[0]),
+    weakestPattern: data.reduce((min, item) => item.mastery < (min?.mastery || Infinity) ? item : min, data[0]),
     totalSolved: data.reduce((sum, item) => sum + item.solvedProblems, 0),
   };
 

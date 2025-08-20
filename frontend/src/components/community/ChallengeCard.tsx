@@ -22,11 +22,11 @@ export function ChallengeCard({ challenge, currentUserId, onJoin, onLeave, class
   const participant = challenge.participants.find(p => p.userId === currentUserId);
   const isCreator = challenge.creatorId === currentUserId;
 
-  const now = new Date();
+  // const now = new Date();
   const startDate = new Date(challenge.startDate);
   const endDate = new Date(challenge.endDate);
   
-  const isUpcoming = isFuture(startDate);
+  // const isUpcoming = isFuture(startDate);
   const isActive = !isPast(endDate) && !isFuture(startDate);
   const isCompleted = isPast(endDate);
 
