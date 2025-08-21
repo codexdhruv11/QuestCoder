@@ -206,10 +206,7 @@ export const BadgeDisplay: React.FC<BadgeDisplayProps> = ({
         gridColsClass[gridCols]
       )}>
         {badges.map((badge) => (
-          <BadgeCard
-            key={badge.id}
-            badge={badge}
-            onBadgeClick={onBadgeClick}
+          <BadgeCard key={badge.id} badge={badge} {...(onBadgeClick && { onBadgeClick })}
             showProgress={showProgress}
           />
         ))}

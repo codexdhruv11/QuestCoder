@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { LineChart, BarChart } from '@/components/ui/chart';
+import { BarChart } from '@/components/ui/chart';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -14,7 +14,7 @@ import {
   Clock,
   Brain
 } from 'lucide-react';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 
 export interface PredictiveData {
   currentVelocity: number; // problems per day
@@ -113,16 +113,16 @@ export function PredictiveInsights({
     projected: pattern.projectedMastery,
   }));
 
-  const patternChartConfig = {
-    current: {
-      label: "Current Mastery",
-      color: "hsl(var(--chart-1))",
-    },
-    projected: {
-      label: "Projected Mastery",
-      color: "hsl(var(--chart-2))",
-    },
-  };
+  // const patternChartConfig = {
+  //   current: {
+  //     label: "Current Mastery",
+  //     color: "hsl(var(--chart-1))",
+  //   },
+  //   projected: {
+  //     label: "Projected Mastery",
+  //     color: "hsl(var(--chart-2))",
+  //   },
+  // };
 
   // Prepare milestone progress data
   const milestoneChartData = data.milestones.map(milestone => ({
@@ -130,12 +130,12 @@ export function PredictiveInsights({
     progress: (milestone.current / milestone.target) * 100,
   }));
 
-  const milestoneChartConfig = {
-    progress: {
-      label: "Progress %",
-      color: "hsl(var(--chart-3))",
-    },
-  };
+  // const milestoneChartConfig = {
+  //   progress: {
+  //     label: "Progress %",
+  //     color: "hsl(var(--chart-3))",
+  //   },
+  // };
 
   const renderCompletionView = () => (
     <div className="space-y-6">

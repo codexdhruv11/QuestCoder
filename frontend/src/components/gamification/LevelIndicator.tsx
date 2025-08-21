@@ -117,7 +117,7 @@ const LevelUpAnimation: React.FC<{ onComplete: () => void }> = ({ onComplete }) 
 
 export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
   currentLevel,
-  currentXP,
+  // currentXP,
   xpToNextLevel,
   totalXPForCurrentLevel,
   className,

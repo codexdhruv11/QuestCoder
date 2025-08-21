@@ -17,8 +17,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
-  TooltipProps
+  ResponsiveContainer
 } from "recharts"
 
 // Common chart colors
@@ -42,41 +41,6 @@ export const CHART_COLORS = {
   ]
 }
 
-// Custom Tooltip Component
-const CustomTooltip = ({ 
-  active, 
-  payload, 
-  label, 
-  className,
-  labelFormatter,
-  valueFormatter
-}: TooltipProps<any, any> & {
-  className?: string
-  labelFormatter?: (label: any) => string
-  valueFormatter?: (value: any, name: string) => string
-}) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className={cn(
-        "rounded-lg border bg-background p-3 shadow-md",
-        className
-      )}>
-        {label && (
-          <p className="font-medium text-foreground">
-            {labelFormatter ? labelFormatter(label) : label}
-          </p>
-        )}
-        {payload.map((entry, index) => (
-          <p key={index} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: {valueFormatter ? valueFormatter(entry.value, entry.name) : entry.value}
-          </p>
-        ))}
-      </div>
-    )
-  }
-  return null
-}
-
 // Line Chart Component
 interface LineChartProps {
   data: any[]
@@ -90,8 +54,6 @@ interface LineChartProps {
   height?: number
   showGrid?: boolean
   showLegend?: boolean
-  tooltipFormatter?: (value: any, name: string) => string
-  labelFormatter?: (label: any) => string
 }
 
 export const CustomLineChart = ({
@@ -101,9 +63,7 @@ export const CustomLineChart = ({
   className,
   height = 300,
   showGrid = true,
-  showLegend = true,
-  tooltipFormatter,
-  labelFormatter
+  showLegend = true
 }: LineChartProps) => {
   return (
     <div className={cn("w-full", className)}>
@@ -119,15 +79,7 @@ export const CustomLineChart = ({
             className="text-xs fill-muted-foreground"
             tick={{ fontSize: 12 }}
           />
-          <Tooltip 
-            content={(props) => (
-              <CustomTooltip 
-                {...props} 
-                valueFormatter={tooltipFormatter}
-                labelFormatter={labelFormatter}
-              />
-            )}
-          />
+          <Tooltip />
           {showLegend && <Legend />}
           {lines.map((line, index) => (
             <Line
@@ -160,8 +112,6 @@ interface BarChartProps {
   height?: number
   showGrid?: boolean
   showLegend?: boolean
-  tooltipFormatter?: (value: any, name: string) => string
-  labelFormatter?: (label: any) => string
 }
 
 export const CustomBarChart = ({
@@ -171,9 +121,7 @@ export const CustomBarChart = ({
   className,
   height = 300,
   showGrid = true,
-  showLegend = true,
-  tooltipFormatter,
-  labelFormatter
+  showLegend = true
 }: BarChartProps) => {
   return (
     <div className={cn("w-full", className)}>
@@ -189,15 +137,7 @@ export const CustomBarChart = ({
             className="text-xs fill-muted-foreground"
             tick={{ fontSize: 12 }}
           />
-          <Tooltip 
-            content={(props) => (
-              <CustomTooltip 
-                {...props} 
-                valueFormatter={tooltipFormatter}
-                labelFormatter={labelFormatter}
-              />
-            )}
-          />
+          <Tooltip />
           {showLegend && <Legend />}
           {bars.map((bar, index) => (
             <Bar
@@ -223,7 +163,6 @@ interface PieChartProps {
   height?: number
   showLegend?: boolean
   colors?: string[]
-  tooltipFormatter?: (value: any, name: string) => string
 }
 
 export const CustomPieChart = ({
@@ -233,8 +172,7 @@ export const CustomPieChart = ({
   className,
   height = 300,
   showLegend = true,
-  colors = CHART_COLORS.colors,
-  tooltipFormatter
+  colors = CHART_COLORS.colors
 }: PieChartProps) => {
   return (
     <div className={cn("w-full", className)}>
@@ -249,18 +187,11 @@ export const CustomPieChart = ({
             nameKey={nameKey}
             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
           >
-            {data.map((entry, index) => (
+            {data.map((_entry, index) => (
               <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
             ))}
           </Pie>
-          <Tooltip 
-            content={(props) => (
-              <CustomTooltip 
-                {...props} 
-                valueFormatter={tooltipFormatter}
-              />
-            )}
-          />
+          <Tooltip />
           {showLegend && <Legend />}
         </PieChart>
       </ResponsiveContainer>
@@ -277,7 +208,6 @@ interface RadarChartProps {
   height?: number
   fill?: string
   stroke?: string
-  tooltipFormatter?: (value: any, name: string) => string
 }
 
 export const CustomRadarChart = ({
@@ -287,8 +217,7 @@ export const CustomRadarChart = ({
   className,
   height = 300,
   fill = CHART_COLORS.primary,
-  stroke = CHART_COLORS.primary,
-  tooltipFormatter
+  stroke = CHART_COLORS.primary
 }: RadarChartProps) => {
   return (
     <div className={cn("w-full", className)}>
@@ -312,14 +241,7 @@ export const CustomRadarChart = ({
             fillOpacity={0.1}
             strokeWidth={2}
           />
-          <Tooltip 
-            content={(props) => (
-              <CustomTooltip 
-                {...props} 
-                valueFormatter={tooltipFormatter}
-              />
-            )}
-          />
+          <Tooltip />
         </RadarChart>
       </ResponsiveContainer>
     </div>
