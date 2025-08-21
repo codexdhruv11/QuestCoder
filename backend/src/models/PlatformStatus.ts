@@ -106,8 +106,8 @@ platformStatusSchema.methods['calculateUptime'] = function(): number {
   return Math.max(0, Math.min(100, (successfulChecks / totalChecks) * 100))
 }
 
-// Indexes for better query performance
-platformStatusSchema.index({ platform: 1 })
+// Additional indexes for better query performance
+// Note: platform already has an index from 'unique: true'
 platformStatusSchema.index({ status: 1 })
 platformStatusSchema.index({ lastChecked: -1 })
 platformStatusSchema.index({ uptime: -1 })
@@ -118,4 +118,11 @@ platformStatusSchema.index({ platform: 1, status: 1 })
 const PlatformStatus = mongoose.model<IPlatformStatus>('PlatformStatus', platformStatusSchema)
 
 export default PlatformStatus
+
+
+
+
+
+
+
 

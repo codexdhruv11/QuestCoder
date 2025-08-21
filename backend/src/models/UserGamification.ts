@@ -152,8 +152,8 @@ userGamificationSchema.methods['unlockBadge'] = async function(badgeId: mongoose
   return false
 }
 
-// Indexes for better query performance
-userGamificationSchema.index({ userId: 1 }, { unique: true })
+// Additional indexes for better query performance
+// Note: userId already has an index from 'unique: true'
 userGamificationSchema.index({ totalXp: -1 })
 userGamificationSchema.index({ currentLevel: -1 })
 userGamificationSchema.index({ lastXpGainedAt: -1 })

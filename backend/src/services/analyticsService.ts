@@ -339,7 +339,7 @@ export class AnalyticsService {
     const chartData: ChartDataPoint[] = []
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0]
+      const dateStr = d.toISOString().split('T')[0] || ''
       const dayStart = new Date(d)
       const dayEnd = new Date(d)
       dayEnd.setDate(dayEnd.getDate() + 1)

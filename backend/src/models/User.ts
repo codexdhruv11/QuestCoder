@@ -166,9 +166,8 @@ userSchema.methods['isAdmin'] = function(): boolean {
   return this['role'] === 'admin'
 }
 
-// Indexes for better query performance
-userSchema.index({ email: 1 })
-userSchema.index({ username: 1 })
+// Additional indexes for better query performance
+// Note: email and username already have indexes from 'unique: true'
 userSchema.index({ createdAt: -1 })
 userSchema.index({ isActive: 1 })
 userSchema.index({ role: 1 })

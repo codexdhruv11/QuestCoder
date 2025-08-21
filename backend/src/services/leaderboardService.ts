@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import mongoose, { PipelineStage } from 'mongoose'
 import UserGamification from '@/models/UserGamification'
 import UserProgress from '@/models/UserProgress'
 import StudyGroup from '@/models/StudyGroup'
@@ -58,7 +58,7 @@ export class LeaderboardService {
         matchStage.lastXpGainedAt = { $gte: timeFilter }
       }
 
-      const pipeline = [
+      const pipeline: PipelineStage[] = [
         { $match: matchStage },
         {
           $lookup: {
@@ -143,7 +143,7 @@ export class LeaderboardService {
     try {
       const { limit = 50, offset = 0, timeframe = 'all' } = filters
 
-      const pipeline = [
+      const pipeline: PipelineStage[] = [
         {
           $lookup: {
             from: 'users',
@@ -245,7 +245,7 @@ export class LeaderboardService {
     try {
       const { limit = 50, offset = 0 } = filters
 
-      const pipeline = [
+      const pipeline: PipelineStage[] = [
         {
           $lookup: {
             from: 'users',
@@ -345,7 +345,7 @@ export class LeaderboardService {
         matchStage.lastXpGainedAt = { $gte: timeFilter }
       }
 
-      const pipeline = [
+      const pipeline: PipelineStage[] = [
         { $match: matchStage },
         {
           $lookup: {
@@ -422,7 +422,7 @@ export class LeaderboardService {
     timeframe: string = 'all'
   ): Promise<number | undefined> {
     try {
-      let pipeline: any[] = []
+      let pipeline: PipelineStage[] = []
 
       switch (type) {
         case 'xp': {
@@ -497,6 +497,16 @@ export class LeaderboardService {
       logger.error('Error finding user rank:', error)
       return undefined
     }
+  }
+
+  /**
+   * Get user's rank for a specific leaderboard type
+   */
+  static async getUserRank(
+    userId: mongoose.Types.ObjectId,
+    type: 'xp' | 'problems' | 'streak'
+  ): Promise<number | undefined> {
+    return this.findUserRank(userId, type, 'all')
   }
 
   /**

@@ -178,8 +178,8 @@ badgeSchema.statics['getAvailableByCategory'] = function(category: string) {
   return this.find({ category, isActive: true }).sort({ rarity: 1, createdAt: 1 })
 }
 
-// Indexes for better query performance
-badgeSchema.index({ identifier: 1 }, { unique: true })
+// Additional indexes for better query performance
+// Note: identifier already has an index from 'unique: true'
 badgeSchema.index({ category: 1 })
 badgeSchema.index({ rarity: 1 })
 badgeSchema.index({ isActive: 1 })

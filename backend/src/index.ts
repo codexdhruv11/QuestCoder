@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 import { createServer } from 'http'
 import { config } from 'dotenv'
+import mongoose from 'mongoose'
 import { connectDB } from '@/config/database'
 import { logger } from '@/utils/logger'
 import authRoutes from '@/routes/auth'
@@ -24,20 +25,87 @@ import platformMonitoringJob from '@/jobs/platformMonitoring'
 // Load environment variables
 config()
 
+// Environment variable validation
+const validateEnvironment = () => {
+  const requiredEnvVars = [
+    { key: 'JWT_SECRET', required: true, message: 'JWT_SECRET is required for authentication' },
+    { key: 'MONGODB_URI', required: true, message: 'MONGODB_URI is required for database connection' },
+  ]
+
+  const optionalEnvVars = [
+    { key: 'PORT', default: '3000', message: 'PORT defaults to 3000' },
+    { key: 'CORS_ORIGIN', default: 'http://localhost:5173', message: 'CORS_ORIGIN defaults to http://localhost:5173' },
+    { key: 'SOCKET_IO_CORS_ORIGIN', default: 'http://localhost:5173', message: 'SOCKET_IO_CORS_ORIGIN defaults to http://localhost:5173' },
+    { key: 'NODE_ENV', default: 'development', message: 'NODE_ENV defaults to development' },
+    { key: 'LOG_LEVEL', default: 'info', message: 'LOG_LEVEL defaults to info' },
+  ]
+
+  logger.info('Starting environment validation...')
+
+  // Check required variables
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar.key]) {
+      logger.error(`Environment validation failed: ${envVar.message}`)
+      throw new Error(`Missing required environment variable: ${envVar.key}`)
+    }
+    logger.info(`✓ ${envVar.key} is configured`)
+  }
+
+  // Set defaults for optional variables
+  for (const envVar of optionalEnvVars) {
+    if (!process.env[envVar.key]) {
+      process.env[envVar.key] = envVar.default
+      logger.info(`→ ${envVar.message}`)
+    } else {
+      logger.info(`✓ ${envVar.key}: ${process.env[envVar.key]}`)
+    }
+  }
+
+  logger.info('Environment validation completed successfully')
+}
+
+// Validate environment on startup
+validateEnvironment()
+
 const app = express()
-const PORT = process.env['PORT'] || 3000
+const PORT = parseInt(process.env['PORT'] || '5000', 10)
+
+logger.info('Initializing QuestCoder backend server...')
 
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for development
 }))
 
-// CORS configuration
+// Enhanced CORS configuration for multiple environments
+const corsOrigins = process.env['CORS_ORIGIN']?.split(',').map(origin => origin.trim()) || ['http://localhost:5173']
+logger.info(`CORS origins configured: ${corsOrigins.join(', ')}`)
+
 app.use(cors({
-  origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    // Check if origin is in allowed list
+    if (corsOrigins.includes(origin) || corsOrigins.includes('*')) {
+      return callback(null, true)
+    }
+    
+    // For development, allow localhost with any port
+    if (process.env['NODE_ENV'] === 'development') {
+      const localhostRegex = /^http:\/\/localhost:\d+$/
+      if (localhostRegex.test(origin)) {
+        return callback(null, true)
+      }
+    }
+    
+    logger.warn(`CORS blocked origin: ${origin}`)
+    callback(new Error('Not allowed by CORS'))
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
 }))
 
 // Rate limiting
@@ -48,7 +116,7 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   // Skip rate limiting in development
-  skip: (req) => process.env.NODE_ENV === 'development',
+  skip: (req) => process.env['NODE_ENV'] === 'development',
 })
 
 app.use('/api', limiter)
@@ -72,27 +140,77 @@ app.use((req, _res, next) => {
   next()
 })
 
-// Health check endpoints
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env['NODE_ENV'] || 'development',
-  })
+// Health check endpoints with detailed service status
+let databaseStatus = 'unknown'
+let socketStatus = 'unknown'
+
+const checkDatabaseConnection = async () => {
+  try {
+    const mongoose = require('mongoose')
+    if (mongoose.connection.readyState === 1) {
+      databaseStatus = 'connected'
+      return true
+    } else {
+      databaseStatus = 'disconnected'
+      return false
+    }
+  } catch (error) {
+    databaseStatus = 'error'
+    return false
+  }
+}
+
+// Simple health check for wait-on and load balancers
+app.head('/health', async (_req, res) => {
+  const isDbConnected = await checkDatabaseConnection()
+  res.status(isDbConnected ? 200 : 503).end()
 })
 
-app.get('/api/health', (_req, res) => {
-  res.status(200).json({
-    status: 'OK',
+app.get('/health', async (_req, res) => {
+  const isDbConnected = await checkDatabaseConnection()
+  
+  const healthStatus = {
+    status: isDbConnected ? 'OK' : 'ERROR',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env['NODE_ENV'] || 'development',
+    version: process.env['npm_package_version'] || '1.0.0',
     services: {
-      database: 'connected',
-      monitoring: 'active'
+      database: databaseStatus,
+      socket: socketStatus,
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+      }
     }
-  })
+  }
+  
+  res.status(isDbConnected ? 200 : 503).json(healthStatus)
+})
+
+app.get('/api/health', async (_req, res) => {
+  const isDbConnected = await checkDatabaseConnection()
+  
+  const healthStatus = {
+    status: isDbConnected ? 'OK' : 'ERROR',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env['NODE_ENV'] || 'development',
+    version: process.env['npm_package_version'] || '1.0.0',
+    services: {
+      database: databaseStatus,
+      socket: socketStatus,
+      monitoring: 'active'
+    },
+    system: {
+      memory: process.memoryUsage(),
+      platform: process.platform,
+      nodeVersion: process.version,
+      pid: process.pid
+    }
+  }
+  
+  res.status(isDbConnected ? 200 : 503).json(healthStatus)
 })
 
 // API routes
@@ -134,49 +252,164 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   })
 })
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal received: closing HTTP server')
-  process.exit(0)
+// Graceful shutdown handler
+let httpServer: any = null
+let io: any = null
+
+const gracefulShutdown = (signal: string) => {
+  logger.info(`${signal} signal received: starting graceful shutdown`)
+  
+  if (httpServer) {
+    httpServer.close(async (err: any) => {
+      if (err) {
+        logger.error('Error during HTTP server shutdown:', err)
+      } else {
+        logger.info('HTTP server closed successfully')
+      }
+      
+      // Close Socket.IO server
+      if (io) {
+        io.close(() => {
+          logger.info('Socket.IO server closed successfully')
+        })
+      }
+      
+      // Close database connection
+      try {
+        await mongoose.connection.close()
+        logger.info('Database connection closed successfully')
+      } catch (error) {
+        logger.error('Error closing database connection:', error)
+      }
+      
+      logger.info('Graceful shutdown completed')
+      process.exit(err ? 1 : 0)
+    })
+    
+    // Force close after timeout
+    setTimeout(() => {
+      logger.error('Graceful shutdown timeout - forcing exit')
+      process.exit(1)
+    }, 30000)
+  } else {
+    process.exit(0)
+  }
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+
+// Uncaught exception handler
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception:', error)
+  gracefulShutdown('UNCAUGHT_EXCEPTION')
 })
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT signal received: closing HTTP server')
-  process.exit(0)
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled promise rejection:', { reason, promise })
+  gracefulShutdown('UNHANDLED_REJECTION')
 })
 
-// Start server
+// Enhanced server startup with detailed dependency checking
 async function startServer() {
   try {
-    // Connect to database
-    await connectDB()
+    logger.info('🚀 Starting QuestCoder backend server...')
     
-    // Create HTTP server
-    const httpServer = createServer(app)
+    // Step 1: Database connection with retry logic
+    logger.info('📊 Connecting to database...')
+    let dbConnected = false
+    let attempts = 0
+    const maxAttempts = 5
     
-    // Initialize Socket.IO
-    const io = initializeSocket(httpServer)
-    const socketEvents = new SocketEvents(io)
+    while (!dbConnected && attempts < maxAttempts) {
+      try {
+        await connectDB()
+        await checkDatabaseConnection()
+        dbConnected = true
+        logger.info('✅ Database connected successfully')
+      } catch (error) {
+        attempts++
+        logger.error(`❌ Database connection attempt ${attempts}/${maxAttempts} failed:`, error)
+        
+        if (attempts < maxAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, attempts), 10000)
+          logger.info(`⏳ Retrying in ${delay}ms...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        } else {
+          throw new Error(`Failed to connect to database after ${maxAttempts} attempts`)
+        }
+      }
+    }
     
-    // Store socket events instance in app locals for access in routes
-    app.locals['socketEvents'] = socketEvents
+    // Step 2: Create HTTP server
+    logger.info('🌐 Creating HTTP server...')
+    httpServer = createServer(app)
     
-    // Initialize platform monitoring
-    platformMonitoringJob.setSocketServer(io)
-    await platformMonitoringJob.initializePlatforms()
+    // Step 3: Initialize Socket.IO with error handling
+    logger.info('🔌 Initializing Socket.IO server...')
+    try {
+      io = initializeSocket(httpServer)
+      socketStatus = 'initialized'
+      
+      const socketEvents = new SocketEvents(io)
+      app.locals['socketEvents'] = socketEvents
+      
+      logger.info('✅ Socket.IO server initialized successfully')
+    } catch (error) {
+      logger.error('❌ Socket.IO initialization failed:', error)
+      socketStatus = 'error'
+      throw error
+    }
     
-    logger.info('Platform monitoring initialized successfully')
+    // Step 4: Initialize platform monitoring
+    logger.info('📈 Initializing platform monitoring...')
+    try {
+      platformMonitoringJob.setSocketServer(io)
+      await platformMonitoringJob.initializePlatforms()
+      logger.info('✅ Platform monitoring initialized successfully')
+    } catch (error) {
+      logger.warn('⚠️ Platform monitoring initialization failed (non-critical):', error)
+    }
     
-    // Start listening
-    httpServer.listen(PORT, () => {
-      logger.info(`Server is running on port ${PORT} in ${process.env['NODE_ENV'] || 'development'} mode`)
-      logger.info(`Health check available at http://localhost:${PORT}/health`)
-      logger.info(`Socket.IO server initialized and ready for connections`)
+    // Step 5: Start HTTP server
+    logger.info(`🎯 Starting HTTP server on port ${PORT}...`)
+    await new Promise<void>((resolve, reject) => {
+      httpServer.listen(PORT, '0.0.0.0', (err: any) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve()
+        }
+      })
     })
+    
+    socketStatus = 'ready'
+    
+    // Success messages
+    logger.info('🎉 QuestCoder backend server started successfully!')
+    logger.info(`📍 Server running at: http://localhost:${PORT}`)
+    logger.info(`🏥 Health check: http://localhost:${PORT}/health`)
+    logger.info(`🔗 API endpoint: http://localhost:${PORT}/api`)
+    logger.info(`🔌 Socket.IO ready for connections`)
+    logger.info(`🌍 Environment: ${process.env['NODE_ENV']}`)
+    
   } catch (error) {
-    logger.error('Failed to start server:', error)
+    logger.error('💥 Failed to start server:', error)
+    
+    // Attempt cleanup
+    if (httpServer) {
+      httpServer.close()
+    }
+    if (io) {
+      io.close()
+    }
+    
     process.exit(1)
   }
 }
 
-startServer()
+// Start the server
+startServer().catch((error) => {
+  logger.error('Fatal error during server startup:', error)
+  process.exit(1)
+})

@@ -21,9 +21,9 @@ export interface DifficultyXpConfig {
 
 export class GamificationService {
   private static xpConfig: DifficultyXpConfig = {
-    Easy: Number(process.env.XP_EASY) || 10,
-    Medium: Number(process.env.XP_MEDIUM) || 25,
-    Hard: Number(process.env.XP_HARD) || 50
+    Easy: Number(process.env['XP_EASY']) || 10,
+    Medium: Number(process.env['XP_MEDIUM']) || 25,
+    Hard: Number(process.env['XP_HARD']) || 50
   }
 
   /**
@@ -80,7 +80,10 @@ export class GamificationService {
 
       // Refetch user gamification to get updated values after badge XP
       userGamification = await UserGamification.findOne({ userId })
-      const finalLevel = userGamification!.currentLevel
+      if (!userGamification) {
+        throw new Error('User gamification record not found after update')
+      }
+      const finalLevel = userGamification.currentLevel
 
       const result: XpGainResult = {
         xpGained: problemXp + badgeBonusXp,
@@ -123,7 +126,7 @@ export class GamificationService {
         }
 
         // Check if user meets criteria
-        const isEligible = await Badge.checkUserEligibility(badge._id, userId)
+        const isEligible = await (Badge as any).checkUserEligibility(badge._id, userId)
         if (isEligible) {
           // Unlock the badge - returns true if badge was newly added
           const wasNewlyUnlocked = await userGamification.unlockBadge(badge._id)
@@ -212,7 +215,7 @@ export class GamificationService {
   static calculateLevelFromXp(xp: number): number {
     if (xp <= 0) return 1
     
-    const baseXp = Number(process.env.LEVEL_XP_BASE) || 100
+    const baseXp = Number(process.env['LEVEL_XP_BASE']) || 100
     return Math.floor(Math.sqrt(xp / baseXp)) + 1
   }
 
@@ -222,7 +225,7 @@ export class GamificationService {
   static calculateXpForLevel(level: number): number {
     if (level <= 1) return 0
     
-    const baseXp = Number(process.env.LEVEL_XP_BASE) || 100
+    const baseXp = Number(process.env['LEVEL_XP_BASE']) || 100
     return (level - 1) * (level - 1) * baseXp
   }
 
@@ -256,7 +259,7 @@ export class GamificationService {
       const badgeProgress = await Promise.all(
         allBadges.map(async (badge) => {
           const isUnlocked = !!userGamification?.unlockedBadges?.some((id: mongoose.Types.ObjectId) => id.equals(badge._id))
-          const isEligible = !isUnlocked && await Badge.checkUserEligibility(badge._id, userId)
+          const isEligible = !isUnlocked && await (Badge as any).checkUserEligibility(badge._id, userId)
 
           // Calculate progress percentage for some badge types
           let progressPercentage = 0

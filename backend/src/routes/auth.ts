@@ -8,7 +8,7 @@ import { validateLogin, validateSignup } from '@/middleware/validation'
 const router = Router()
 
 // User registration
-router.post('/signup', validateSignup, async (req, res) => {
+router.post('/signup', validateSignup, async (req, res): Promise<void> => {
   try {
     const { username, email, password, leetcodeHandle, codeforcesHandle, githubHandle, hackerrankHandle, hackerearthHandle } = req.body
 
@@ -19,10 +19,11 @@ router.post('/signup', validateSignup, async (req, res) => {
 
     if (existingUser) {
       const field = existingUser.email === email ? 'email' : 'username'
-      return res.status(409).json({
+      res.status(409).json({
         success: false,
         message: `User with this ${field} already exists`
       })
+      return
     }
 
     // Create new user
@@ -58,11 +59,12 @@ router.post('/signup', validateSignup, async (req, res) => {
     logger.error('Signup error:', error)
     
     if (error.name === 'ValidationError') {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Validation failed',
         errors: Object.values(error.errors).map((e: any) => e.message)
       })
+      return
     }
 
     res.status(500).json({
@@ -73,7 +75,7 @@ router.post('/signup', validateSignup, async (req, res) => {
 })
 
 // User login
-router.post('/login', validateLogin, async (req, res) => {
+router.post('/login', validateLogin, async (req, res): Promise<void> => {
   try {
     const { email, password } = req.body
 
@@ -81,19 +83,21 @@ router.post('/login', validateLogin, async (req, res) => {
     const user = await User.findOne({ email }).select('+password')
 
     if (!user || !user.isActive) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       })
+      return
     }
 
     // Verify password
     const isValidPassword = await user.comparePassword(password)
     if (!isValidPassword) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       })
+      return
     }
 
     // Update last login time

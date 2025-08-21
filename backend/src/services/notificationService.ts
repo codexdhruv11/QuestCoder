@@ -79,13 +79,13 @@ export class NotificationService {
         const [userIdStr, type] = key.split(sep)
         const count = notificationGroup.length
 
-        if (count === 1) {
+        if (count === 1 && notificationGroup[0]) {
           // Single notification
           await this.createNotification(
             new mongoose.Types.ObjectId(userIdStr),
             notificationGroup[0]
           )
-        } else {
+        } else if (count > 1 && type) {
           // Batch notification
           await this.createNotification(
             new mongoose.Types.ObjectId(userIdStr),

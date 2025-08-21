@@ -22,3 +22,7 @@ db.platformStatuses.createIndex({ "platform": 1 }, { unique: true });
 
 print('Database initialized successfully!');
 
+
+
+
+

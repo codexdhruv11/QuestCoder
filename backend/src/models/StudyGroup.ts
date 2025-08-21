@@ -213,9 +213,9 @@ studyGroupSchema.pre('save', function(next) {
   next()
 })
 
-// Indexes for better query performance
+// Additional indexes for better query performance
+// Note: inviteCode already has an index from 'unique: true'
 studyGroupSchema.index({ ownerId: 1 })
-studyGroupSchema.index({ inviteCode: 1 }, { unique: true })
 studyGroupSchema.index({ isActive: 1 })
 studyGroupSchema.index({ isPrivate: 1 })
 studyGroupSchema.index({ 'members.userId': 1 })
