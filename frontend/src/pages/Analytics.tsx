@@ -15,15 +15,15 @@ import {
   Clock, 
   Brain, 
   Zap, 
-  Calendar,
+  
   Download,
   Filter,
-  BarChart3,
+  
   Activity,
   Trophy,
   Flame
 } from 'lucide-react'
-import { format, subDays, subWeeks, subMonths, subYears } from 'date-fns'
+import { subDays } from 'date-fns'
 import { analyticsAPI } from '@/lib/api'
 import { PatternRadar, PatternMasteryData } from '@/components/analytics/PatternRadar'
 import { PredictiveInsights, PredictiveData } from '@/components/analytics/PredictiveInsights'
@@ -97,7 +97,7 @@ const Analytics: React.FC = () => {
     setLoading(true)
     try {
       const period = timeRange === '7d' ? 'daily' : timeRange === '30d' ? 'daily' : timeRange === '90d' ? 'weekly' : 'monthly'
-      const days = timeRanges[timeRange].days
+      const days = timeRanges[timeRange as keyof typeof timeRanges].days
       
       const [overviewRes, progressRes, patternsRes, predictionsRes, performanceRes] = await Promise.all([
         analyticsAPI.getOverview(),
@@ -110,10 +110,10 @@ const Analytics: React.FC = () => {
       // Transform insights array into expected predictions structure
       const insights = predictionsRes?.insights || []
       const predictions = {
-        nextLevelDays: insights.find(i => i.type === 'completion_estimate')?.value || 0,
-        projectedCompletionRate: insights.find(i => i.type === 'completion_estimate')?.confidence || 0,
-        suggestedFocusAreas: insights.filter(i => i.type === 'goal_recommendation').map(i => i.description),
-        estimatedTimeToGoal: insights.find(i => i.type === 'streak_prediction')?.value || 0
+        nextLevelDays: insights.find((i: any) => i.type === 'completion_estimate')?.value || 0,
+        projectedCompletionRate: insights.find((i: any) => i.type === 'completion_estimate')?.confidence || 0,
+        suggestedFocusAreas: insights.filter((i: any) => i.type === 'goal_recommendation').map((i: any) => i.description),
+        estimatedTimeToGoal: insights.find((i: any) => i.type === 'streak_prediction')?.value || 0
       }
 
       // Helper function to generate time analytics from performance data
@@ -144,21 +144,21 @@ const Analytics: React.FC = () => {
             current: Math.round(metrics.solvingVelocity * 100) / 100,
             previous: Math.round(metrics.solvingVelocity * 0.9 * 100) / 100,
             change: Math.round((metrics.solvingVelocity - metrics.solvingVelocity * 0.9) / (metrics.solvingVelocity * 0.9) * 100),
-            trend: metrics.improvementRate > 0 ? 'up' : metrics.improvementRate < 0 ? 'down' : 'stable'
+            trend: (metrics.improvementRate > 0 ? 'up' : metrics.improvementRate < 0 ? 'down' : 'stable') as 'up' | 'down' | 'stable'
           },
           {
             metric: 'Consistency Score',
             current: metrics.consistencyScore,
             previous: Math.max(0, metrics.consistencyScore - 5),
             change: 5,
-            trend: 'up'
+            trend: 'up' as 'up' | 'down' | 'stable'
           },
           {
             metric: 'Session Time',
             current: metrics.averageSessionTime,
             previous: metrics.averageSessionTime + 2,
             change: -2,
-            trend: 'down'
+            trend: 'down' as 'up' | 'down' | 'stable'
           }
         ]
       }
@@ -173,8 +173,8 @@ const Analytics: React.FC = () => {
           solved: pattern.solved,
           completionRate: pattern.completion,
           averageTime: 25 + Math.floor(Math.random() * 20), // Placeholder since backend doesn't provide this
-          difficulty: pattern.category === 'Array' ? 'Easy' : 
-                     pattern.category === 'Dynamic Programming' ? 'Hard' : 'Medium'
+          difficulty: (pattern.category === 'Array' ? 'Easy' : 
+                     pattern.category === 'Dynamic Programming' ? 'Hard' : 'Medium') as 'Easy' | 'Medium' | 'Hard'
         }))
       }
 
@@ -221,7 +221,7 @@ const Analytics: React.FC = () => {
             direction: metrics?.improvementRate > 0 ? 'improving' : 
                       metrics?.improvementRate < 0 ? 'declining' : 'stable',
             percentage: Math.abs(metrics?.improvementRate || 5),
-            description: insights.find(i => i.type === 'goal_recommendation')?.description || 
+            description: insights.find((i: any) => i.type === 'goal_recommendation')?.description || 
                         'Based on your current solving pace and consistency'
           },
           patternPredictions: (patterns || []).slice(0, 5).map((pattern: any) => ({
@@ -316,7 +316,7 @@ const Analytics: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
@@ -334,7 +334,7 @@ const Analytics: React.FC = () => {
   if (!data) return null
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -401,15 +401,11 @@ const Analytics: React.FC = () => {
             </Select>
 
             <div className="flex items-center space-x-2">
-              <DatePicker
-                date={startDate}
-                onDateChange={setStartDate}
+              <DatePicker date={startDate || new Date()} onDateChange={setStartDate}
                 placeholder="Start date"
               />
               <span className="text-muted-foreground">to</span>
-              <DatePicker
-                date={endDate}
-                onDateChange={setEndDate}
+              <DatePicker date={endDate || new Date()} onDateChange={setEndDate}
                 placeholder="End date"
               />
             </div>
@@ -568,7 +564,7 @@ const Analytics: React.FC = () => {
                 <CardTitle>Performance Trends</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {data.performanceMetrics.map((metric, index) => (
+                {data.performanceMetrics.map((metric) => (
                   <div key={metric.metric} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div>
                       <p className="font-medium">{metric.metric}</p>
@@ -628,6 +624,7 @@ const Analytics: React.FC = () => {
                     value: p.averageTime,
                     fill: `hsl(${Math.random() * 360}, 70%, 50%)`
                   }))}
+                  dataKey="value"
                   height={300}
                 />
               </CardContent>

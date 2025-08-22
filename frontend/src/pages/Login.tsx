@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Code2, Eye, EyeOff } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
+import { getErrorInfo } from '@/lib/error-handler'
+import { Code2, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -23,6 +25,7 @@ export default function Login() {
   const [error, setError] = useState('')
   
   const { login } = useAuth()
+  const { toast } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   
@@ -42,10 +45,26 @@ export default function Login() {
       setError('')
       
       await login(data)
+      
+      // Show success toast
+      toast({
+        title: "Welcome back!",
+        description: "You have been successfully logged in.",
+      })
+      
       navigate(from, { replace: true })
     } catch (error: any) {
       console.error('Login error:', error)
-      setError(error.response?.data?.message || 'Login failed. Please try again.')
+      
+      // Use enhanced error handling
+      const errorInfo = getErrorInfo(error)
+      setError(errorInfo.message)
+      
+      toast({
+        title: errorInfo.title,
+        description: errorInfo.message,
+        variant: errorInfo.variant === 'warning' ? 'default' : errorInfo.variant as 'destructive'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -129,7 +148,7 @@ export default function Login() {
               >
                 {isLoading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Signing in...
                   </>
                 ) : (

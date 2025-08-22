@@ -9,6 +9,10 @@
   ],
   "scripts": {
     "dev": "concurrently -n backend,frontend -c green,cyan \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "dev:smart": "node scripts/dev-start.js",
+    "dev:wait": "concurrently -n backend,frontend -c green,cyan \"cd backend && npm run dev\" \"wait-on --timeout 60000 --interval 1000 --httpTimeout 30000 --verbose http://localhost:5000/health && cd frontend && npm run dev\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
     "build": "cd backend && npm run build && cd ../frontend && npm run build",
     "start": "cd backend && npm run start",
     "lint": "cd frontend && npm run lint && cd ../backend && npm run lint",
@@ -38,7 +42,8 @@
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "wait-on": "^8.0.4"
   },
   "engines": {
     "node": ">=18.0.0",

@@ -21,8 +21,7 @@ const notificationSchema = new Schema<INotification>(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true
+      required: true
     },
     type: {
       type: String,
@@ -36,8 +35,7 @@ const notificationSchema = new Schema<INotification>(
         'group_joined', 
         'achievement',
         'system'
-      ],
-      index: true
+      ]
     },
     title: {
       type: String,
@@ -57,12 +55,10 @@ const notificationSchema = new Schema<INotification>(
     },
     isRead: {
       type: Boolean,
-      default: false,
-      index: true
+      default: false
     },
     expiresAt: {
-      type: Date,
-      index: true
+      type: Date
     }
   },
   {

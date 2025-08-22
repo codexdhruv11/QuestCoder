@@ -92,14 +92,15 @@ router.get('/groups', async (req: Request, res: Response) => {
  * POST /community/groups
  * Create a new study group
  */
-router.post('/groups', async (req: Request, res: Response) => {
+router.post('/groups', async (req: Request, res: Response): Promise<void> => {
   try {
     const { error, value } = createGroupSchema.validate(req.body)
     if (error) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: error.details[0].message
+        message: error.details?.[0]?.message || 'Validation error'
       })
+      return
     }
 
     const userId = new mongoose.Types.ObjectId(req.user!._id)
@@ -130,9 +131,9 @@ router.post('/groups', async (req: Request, res: Response) => {
  * GET /community/groups/:id
  * Get study group details
  */
-router.get('/groups/:id', async (req: Request, res: Response) => {
+router.get('/groups/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.id
+    const groupId = req.params['id']
     const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     const group = await StudyGroup.findById(groupId)
@@ -140,18 +141,20 @@ router.get('/groups/:id', async (req: Request, res: Response) => {
       .populate('members.userId', 'username')
 
     if (!group) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Study group not found'
       })
+      return
     }
 
     // Check if user has access to private group
     if (group.isPrivate && !group.isMember(userId)) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: 'Access denied to private group'
       })
+      return
     }
 
     res.json({
@@ -171,41 +174,44 @@ router.get('/groups/:id', async (req: Request, res: Response) => {
  * POST /community/groups/:id/join
  * Join a study group
  */
-router.post('/groups/:id/join', async (req: Request, res: Response) => {
+router.post('/groups/:id/join', async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.id
+    const groupId = req.params['id']
     const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { inviteCode } = req.body
 
     const group = await StudyGroup.findById(groupId)
     if (!group) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Study group not found'
       })
+      return
     }
 
     // Check if user is already a member
     if (group.isMember(userId)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'You are already a member of this group'
       })
+      return
     }
 
     // Check invite code for private groups
     if (group.isPrivate && inviteCode !== group.inviteCode) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid invite code'
       })
+      return
     }
 
     await group.addMember(userId)
 
     // Emit real-time group activity
-    if (req.app.locals.socketEvents) {
-      const socketEvents = req.app.locals.socketEvents as SocketEvents
+    if (req.app.locals['socketEvents']) {
+      const socketEvents = req.app.locals['socketEvents'] as SocketEvents
       await socketEvents.emitGroupActivity(new mongoose.Types.ObjectId(groupId), {
         type: 'member_joined',
         userId,
@@ -230,24 +236,25 @@ router.post('/groups/:id/join', async (req: Request, res: Response) => {
  * DELETE /community/groups/:id/leave
  * Leave a study group
  */
-router.delete('/groups/:id/leave', async (req: Request, res: Response) => {
+router.delete('/groups/:id/leave', async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.id
+    const groupId = req.params['id']
     const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     const group = await StudyGroup.findById(groupId)
     if (!group) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Study group not found'
       })
+      return
     }
 
     await group.removeMember(userId)
 
     // Emit real-time group activity
-    if (req.app.locals.socketEvents) {
-      const socketEvents = req.app.locals.socketEvents as SocketEvents
+    if (req.app.locals['socketEvents']) {
+      const socketEvents = req.app.locals['socketEvents'] as SocketEvents
       await socketEvents.emitGroupActivity(new mongoose.Types.ObjectId(groupId), {
         type: 'member_left',
         userId,
@@ -263,7 +270,7 @@ router.delete('/groups/:id/leave', async (req: Request, res: Response) => {
     logger.error('Error leaving study group:', error)
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to leave study group'
+      message: (error as Error).message || 'Failed to leave study group'
     })
   }
 })
@@ -331,10 +338,11 @@ router.post('/challenges', async (req: Request, res: Response) => {
   try {
     const { error, value } = createChallengeSchema.validate(req.body)
     if (error) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: error.details[0].message
+        message: error.details?.[0]?.message || 'Validation error'
       })
+      return
     }
 
     const userId = new mongoose.Types.ObjectId(req.user!._id)
@@ -365,24 +373,25 @@ router.post('/challenges', async (req: Request, res: Response) => {
  * POST /community/challenges/:id/join
  * Join a challenge
  */
-router.post('/challenges/:id/join', async (req: Request, res: Response) => {
+router.post('/challenges/:id/join', async (req: Request, res: Response): Promise<void> => {
   try {
-    const challengeId = req.params.id
+    const challengeId = req.params['id']
     const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     const challenge = await Challenge.findById(challengeId)
     if (!challenge) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Challenge not found'
       })
+      return
     }
 
     await challenge.addParticipant(userId)
 
     // Emit real-time challenge update
-    if (req.app.locals.socketEvents) {
-      const socketEvents = req.app.locals.socketEvents as SocketEvents
+    if (req.app.locals['socketEvents']) {
+      const socketEvents = req.app.locals['socketEvents'] as SocketEvents
       await socketEvents.emitChallengeUpdate(new mongoose.Types.ObjectId(challengeId), {
         type: 'participant_joined',
         userId,
@@ -398,7 +407,7 @@ router.post('/challenges/:id/join', async (req: Request, res: Response) => {
     logger.error('Error joining challenge:', error)
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to join challenge'
+      message: (error as Error).message || 'Failed to join challenge'
     })
   }
 })
@@ -407,33 +416,35 @@ router.post('/challenges/:id/join', async (req: Request, res: Response) => {
  * POST /community/challenges/:id/leave
  * Leave a challenge
  */
-router.post('/challenges/:id/leave', async (req: Request, res: Response) => {
+router.post('/challenges/:id/leave', async (req: Request, res: Response): Promise<void> => {
   try {
-    const challengeId = req.params.id
+    const challengeId = req.params['id']
     const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     const challenge = await Challenge.findById(challengeId)
     if (!challenge) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Challenge not found'
       })
+      return
     }
 
     // Check if user is a participant
     if (!challenge.participants.some((p: any) => p.userId.equals(userId))) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'You are not a participant in this challenge'
       })
+      return
     }
 
     // Use the removeParticipant method (already exists on model)
     await challenge.removeParticipant(userId)
 
     // Emit real-time challenge update
-    if (req.app.locals.socketEvents) {
-      const socketEvents = req.app.locals.socketEvents as SocketEvents
+    if (req.app.locals['socketEvents']) {
+      const socketEvents = req.app.locals['socketEvents'] as SocketEvents
       await socketEvents.emitChallengeUpdate(new mongoose.Types.ObjectId(challengeId), {
         type: 'participant_left',
         userId,
@@ -449,7 +460,7 @@ router.post('/challenges/:id/leave', async (req: Request, res: Response) => {
     logger.error('Error leaving challenge:', error)
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to leave challenge'
+      message: (error as Error).message || 'Failed to leave challenge'
     })
   }
 })

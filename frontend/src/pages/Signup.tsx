@@ -27,6 +27,17 @@ const signupSchema = z.object({
 
 type SignupFormData = z.infer<typeof signupSchema>
 
+interface SignupForm {
+  username: string
+  email: string
+  password: string
+  leetcodeHandle?: string
+  codeforcesHandle?: string
+  githubHandle?: string
+  hackerrankHandle?: string
+  hackerearthHandle?: string
+}
+
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -51,7 +62,17 @@ export default function Signup() {
       
       // Remove confirmPassword from data before sending to API
       const { confirmPassword, ...signupData } = data
-      await signup(signupData)
+      const signupPayload = {
+        username: signupData.username,
+        email: signupData.email,
+        password: signupData.password,
+        ...(signupData.leetcodeHandle && { leetcodeHandle: signupData.leetcodeHandle }),
+        ...(signupData.codeforcesHandle && { codeforcesHandle: signupData.codeforcesHandle }),
+        ...(signupData.githubHandle && { githubHandle: signupData.githubHandle }),
+        ...(signupData.hackerrankHandle && { hackerrankHandle: signupData.hackerrankHandle }),
+        ...(signupData.hackerearthHandle && { hackerearthHandle: signupData.hackerearthHandle })
+      }
+      await signup(signupPayload as SignupForm)
       navigate('/dashboard')
     } catch (error: any) {
       console.error('Signup error:', error)

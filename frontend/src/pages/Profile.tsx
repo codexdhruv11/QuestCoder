@@ -51,7 +51,7 @@ export default function Profile() {
       setIsLoading(true)
       setMessage('')
       
-      await userAPI.updateProfile(data)
+      await userAPI.updateProfile(Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined)))
       await refreshUser()
       
       setMessage('Profile updated successfully!')

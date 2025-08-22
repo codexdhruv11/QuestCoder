@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSocketSubscription } from '@/hooks/useSocket'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { XpProgressBar } from '@/components/gamification/XpProgressBar'
+import { LoadingCard } from '@/components/ui/loading'
+import XpProgressBar from '@/components/gamification/XpProgressBar'
 import { BadgeDisplay } from '@/components/gamification/BadgeDisplay'
 import { LevelIndicator } from '@/components/gamification/LevelIndicator'
 import LeetCodeWidget from '@/components/widgets/LeetCodeWidget'
@@ -12,14 +12,14 @@ import GitHubWidget from '@/components/widgets/GitHubWidget'
 import HackerEarthWidget from '@/components/widgets/HackerEarthWidget'
 import StreakTracker from '@/components/widgets/StreakTracker'
 import { analyticsAPI, gamificationAPI } from '@/lib/api'
-import { LayoutDashboard, Target, TrendingUp, Calendar, Trophy, Zap, Users, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, Target, TrendingUp, Trophy, Zap, BarChart3, Calendar } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const [stats, setStats] = useState(null)
-  const [userGamification, setUserGamification] = useState(null)
-  const [recentBadges, setRecentBadges] = useState([])
+  const [stats, setStats] = useState<any>(null)
+  const [userGamification, setUserGamification] = useState<any>(null)
+  const [recentBadges, setRecentBadges] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   // Load dashboard data
@@ -72,18 +72,41 @@ export default function Dashboard() {
     }
   }
 
-  // Listen for real-time updates
-  useSocketSubscription('xp_gained', () => {
-    fetchDashboardData()
-  })
+  // Debounced refresh to prevent API spam
+  const debouncedRefresh = React.useRef<NodeJS.Timeout>()
+  const refreshDashboard = React.useCallback(() => {
+    if (debouncedRefresh.current) {
+      clearTimeout(debouncedRefresh.current)
+    }
+    debouncedRefresh.current = setTimeout(() => {
+      fetchDashboardData()
+    }, 1000) // 1 second debounce
+  }, [])
 
-  useSocketSubscription('badge_unlocked', () => {
-    fetchDashboardData()
-  })
+  // Listen for real-time updates with debounced refresh
+  useSocketSubscription('xp_gained', refreshDashboard)
+  useSocketSubscription('badge_unlocked', refreshDashboard)
+  useSocketSubscription('level_up', refreshDashboard)
 
-  useSocketSubscription('level_up', () => {
-    fetchDashboardData()
-  })
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <LoadingCard />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <LoadingCard key={i} />
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <LoadingCard key={i} />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -109,16 +132,16 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-2xl font-bold flex items-center gap-2">
                 <LevelIndicator 
-                  currentLevel={userGamification.currentLevel}
-                  currentXP={userGamification.totalXp}
-                  xpToNextLevel={userGamification.xpProgress?.required - userGamification.xpProgress?.current || 0}
-                  totalXPForCurrentLevel={userGamification.xpProgress?.required || 100}
+                  currentLevel={userGamification?.currentLevel || 1}
+                  currentXP={userGamification?.totalXp || 0}
+                  xpToNextLevel={(userGamification?.xpProgress?.required || 100) - (userGamification?.xpProgress?.current || 0)}
+                  totalXPForCurrentLevel={userGamification?.xpProgress?.required || 100}
                   variant="compact" 
                 />
-                {userGamification.currentLevel}
+                {userGamification?.currentLevel || 1}
               </div>
               <p className="text-xs text-muted-foreground">
-                {userGamification.totalXp} total XP
+                {userGamification?.totalXp || 0} total XP
               </p>
             </CardContent>
           </Card>
@@ -130,13 +153,13 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-2">
               <XpProgressBar 
-                currentXp={userGamification.totalXp} 
-                level={userGamification.currentLevel}
-                xpProgress={userGamification.xpProgress}
+                currentXp={userGamification?.xpProgress?.current || 0} 
+                level={userGamification?.currentLevel || 1}
+                requiredXp={userGamification?.xpProgress?.required || 100}
                 className="h-3"
               />
               <p className="text-xs text-muted-foreground">
-                Level {userGamification.currentLevel} • {userGamification.unlockedBadges?.length || 0} badges unlocked
+                Level {userGamification?.currentLevel || 1} • {userGamification?.unlockedBadges?.length || 0} badges unlocked
               </p>
             </CardContent>
           </Card>
@@ -149,7 +172,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{recentBadges.length}</div>
               <p className="text-xs text-muted-foreground">
-                {userGamification.unlockedBadges?.length || 0} total earned
+                {userGamification?.unlockedBadges?.length || 0} total earned
               </p>
             </CardContent>
           </Card>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -25,12 +26,18 @@ import {
   Users, 
   Search,
   Filter,
-  Calendar,
   Star,
-  TrendingUp,
   ChevronUp,
   ChevronDown,
-  Minus
+  Minus,
+  Activity,
+  TrendingUp,
+  Bell,
+  Wifi,
+  WifiOff,
+  AlertCircle,
+  CheckCircle,
+  X
 } from 'lucide-react'
 
 interface LeaderboardEntry {
@@ -75,6 +82,33 @@ interface LeaderboardData {
   timeFrame: string
 }
 
+interface ActivityFeedItem {
+  id: string
+  userId: string
+  username: string
+  type: 'level_up' | 'badge_unlock' | 'streak_milestone' | 'rank_change' | 'problem_solve'
+  message: string
+  timestamp: string
+  metadata?: {
+    level?: number
+    badgeName?: string
+    streak?: number
+    rankChange?: number
+    problemCount?: number
+  }
+}
+
+interface LiveStats {
+  totalProblemsToday: number
+  activeUsersCount: number
+  topPerformers: {
+    username: string
+    achievement: string
+    time: string
+  }[]
+  recentActivity: ActivityFeedItem[]
+}
+
 const timeFrames = {
   'weekly': 'This Week',
   'monthly': 'This Month',
@@ -93,6 +127,8 @@ const leaderboardTypes = {
   'problemsSolved': { label: 'Problems Solved', icon: Target, color: 'text-blue-600' },
   'streak': { label: 'Current Streak', icon: Flame, color: 'text-orange-600' }
 }
+
+// Map backend leaderboard types to UI tab keys (unused but kept for reference)
 
 const getRankIcon = (rank: number) => {
   switch (rank) {
@@ -181,7 +217,7 @@ const LeaderboardEntry: React.FC<{
                 {isCurrentUser && <span className="text-xs text-primary ml-1">(You)</span>}
               </p>
               {entry.badges.length > 0 && (
-                <CompactBadgeList badges={entry.badges} maxVisible={3} />
+                <CompactBadgeList badges={entry.badges.map((b: any) => ({ ...b, description: b.description || "", category: b.category || "general", isUnlocked: true }))} maxVisible={3} />
               )}
             </div>
             <p className="text-sm text-muted-foreground">
@@ -213,6 +249,23 @@ const Leaderboards: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState('global')
   const [searchTerm, setSearchTerm] = useState('')
   const { toast } = useToast()
+  
+  // Real-time state
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([])
+  const [liveStats, setLiveStats] = useState<LiveStats>({
+    totalProblemsToday: 0,
+    activeUsersCount: 0,
+    topPerformers: [],
+    recentActivity: []
+  })
+  const [, setRankChanges] = useState<Map<string, { oldRank: number; newRank: number; type: string }>>(new Map())
+  const [lastUpdate, setLastUpdate] = useState<string>('')
+  const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'success' | 'info' | 'warning' }[]>([])
+  
+  // Connection status from socket context
+  const { connectionStatus, recentProgressUpdates, groupActivityFeed, leaderboardChanges } = useSocket()
+  
+  // Refs for performance optimization
 
   useEffect(() => {
     fetchLeaderboards()
@@ -235,9 +288,37 @@ const Leaderboards: React.FC = () => {
     }
   }, [subscribeLeaderboard, unsubscribeLeaderboard])
 
-  // Listen for leaderboard updates with debounced refresh
+  // Real-time leaderboard updates with animations
   const debouncedRefresh = React.useRef<NodeJS.Timeout>()
-  useSocketSubscription('leaderboard_update', (updateData: { type: string; groupId?: string }) => {
+  useSocketSubscription('leaderboard_update', (updateData: { 
+    type: string; 
+    updatedEntries?: Array<{ userId: string; username: string; rank: number; score: number; previousRank?: number }>
+    groupId?: string 
+  }) => {
+    setLastUpdate(new Date().toISOString())
+    
+    // Show live rank indicators
+    if (updateData.updatedEntries) {
+      updateData.updatedEntries.forEach(entry => {
+        if (entry.previousRank && entry.previousRank !== entry.rank) {
+          setRankChanges(prev => new Map(prev.set(entry.userId, {
+            oldRank: entry.previousRank!,
+            newRank: entry.rank,
+            type: updateData.type
+          })))
+          
+          // Clear rank change after animation
+          setTimeout(() => {
+            setRankChanges(prev => {
+              const newMap = new Map(prev)
+              newMap.delete(entry.userId)
+              return newMap
+            })
+          }, 5000)
+        }
+      })
+    }
+    
     // Clear existing timeout
     if (debouncedRefresh.current) {
       clearTimeout(debouncedRefresh.current)
@@ -245,7 +326,7 @@ const Leaderboards: React.FC = () => {
     
     // Debounce refresh to avoid API spam
     debouncedRefresh.current = setTimeout(() => {
-      // Only refresh if the update is for the current leaderboard
+      // Only refresh if the update is for the current view
       if (selectedGroup === 'global') {
         fetchLeaderboards()
       } else if (updateData.groupId === selectedGroup) {
@@ -253,6 +334,110 @@ const Leaderboards: React.FC = () => {
       }
     }, 1000) // 1 second debounce
   })
+
+  // Real-time user rank updates
+  useSocketSubscription('rank_update', (rankData: {
+    leaderboardType: 'xp' | 'problems' | 'streak'
+    newRank: number
+    previousRank?: number
+    score: number
+    username: string
+  }) => {
+    if (rankData.username === user?.username) {
+      // Show notification for current user rank changes
+      if (rankData.previousRank && rankData.previousRank !== rankData.newRank) {
+        const improvement = rankData.previousRank - rankData.newRank
+        const message = improvement > 0 
+          ? `🎉 You moved up ${improvement} ranks in ${rankData.leaderboardType}! Now #${rankData.newRank}`
+          : `You moved down ${Math.abs(improvement)} ranks in ${rankData.leaderboardType}. Now #${rankData.newRank}`
+        
+        addNotification({
+          id: `rank_${Date.now()}`,
+          message,
+          type: improvement > 0 ? 'success' : 'warning'
+        })
+      }
+    }
+  })
+
+  // Process progress updates for activity feed
+  useEffect(() => {
+    if (recentProgressUpdates.length > 0) {
+      const newActivityItems: ActivityFeedItem[] = recentProgressUpdates.slice(-10).map(update => ({
+        id: `progress_${update.userId}_${update.timestamp}`,
+        userId: update.userId,
+        username: update.username || 'Unknown User',
+        type: 'problem_solve',
+        message: `Solved a problem! Completion rate: ${update.progressData.completionRate}%`,
+        timestamp: update.timestamp,
+        metadata: {
+          problemCount: update.progressData.solvedCount
+        }
+      }))
+      
+      setActivityFeed(prev => [...prev, ...newActivityItems].slice(-50))
+    }
+  }, [recentProgressUpdates])
+
+  // Process group updates for activity feed  
+  useEffect(() => {
+    if (groupActivityFeed.length > 0) {
+      const newActivityItems: ActivityFeedItem[] = groupActivityFeed.slice(-10).map(update => {
+        let message = `${update.username} solved "${update.progressData.problemName}"`
+        if (update.progressData.achievements?.length) {
+          message += ` and ${update.progressData.achievements.join(', ')}`
+        }
+        
+        return {
+          id: `group_${update.userId}_${update.timestamp}`,
+          userId: update.userId,
+          username: update.username,
+          type: 'problem_solve',
+          message,
+          timestamp: update.timestamp,
+          metadata: {
+            problemCount: update.progressData.solvedCount
+          }
+        }
+      })
+      
+      setActivityFeed(prev => [...prev, ...newActivityItems].slice(-50))
+    }
+  }, [groupActivityFeed])
+
+  // Handle leaderboard changes from socket context
+  useEffect(() => {
+    if (leaderboardChanges.length > 0) {
+      setLastUpdate(new Date().toISOString())
+      
+      // Update live stats based on leaderboard changes
+      const latestChange = leaderboardChanges[leaderboardChanges.length - 1]
+      if (latestChange && latestChange.updatedEntries) {
+        setLiveStats(prev => ({
+          ...prev,
+          topPerformers: latestChange.updatedEntries!.slice(0, 3).map(entry => ({
+            username: entry.username,
+            achievement: `#${entry.rank} in ${latestChange.type}`,
+            time: new Date(latestChange.timestamp).toLocaleTimeString()
+          }))
+        }))
+      }
+    }
+  }, [leaderboardChanges])
+
+  // Notification management
+  const addNotification = useCallback((notification: { id: string; message: string; type: 'success' | 'info' | 'warning' }) => {
+    setNotifications(prev => [...prev, notification])
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id))
+    }, 5000)
+  }, [])
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id))
+  }, [])
 
   const fetchLeaderboards = async () => {
     setLoading(true)
@@ -263,7 +448,7 @@ const Leaderboards: React.FC = () => {
         username: e.user.username,
         avatar: e.user.avatar,
         rank: e.rank,
-        previousRank: undefined,
+        previousRank: e.previousRank || 0,
         level: e.metadata?.level ?? 1,
         xp: e.score,
         problemsSolved: 0,
@@ -277,8 +462,8 @@ const Leaderboards: React.FC = () => {
         username: e.user.username,
         avatar: e.user.avatar,
         rank: e.rank,
-        previousRank: undefined,
-        level: 0,
+        previousRank: e.previousRank || e.rank,
+        level: e.metadata?.level ?? e.metadata?.currentLevel ?? 1,
         xp: 0,
         problemsSolved: e.score,
         currentStreak: e.metadata?.streak ?? 0,
@@ -291,8 +476,8 @@ const Leaderboards: React.FC = () => {
         username: e.user.username,
         avatar: e.user.avatar,
         rank: e.rank,
-        previousRank: undefined,
-        level: 0,
+        previousRank: e.rank,
+        level: e.metadata?.level ?? e.metadata?.currentLevel ?? 1,
         xp: 0,
         problemsSolved: 0,
         currentStreak: e.score,
@@ -381,9 +566,149 @@ const Leaderboards: React.FC = () => {
     )
   }
 
+  // Connection Status Component
+  const ConnectionStatusIndicator = () => {
+    const getStatusIcon = () => {
+      switch (connectionStatus.connectionQuality) {
+        case 'excellent':
+          return <Wifi className="h-4 w-4 text-green-500" />
+        case 'good':
+          return <Wifi className="h-4 w-4 text-yellow-500" />
+        case 'poor':
+          return <WifiOff className="h-4 w-4 text-orange-500" />
+        default:
+          return <AlertCircle className="h-4 w-4 text-red-500" />
+      }
+    }
+
+    return (
+      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+        {getStatusIcon()}
+        <span>
+          {connectionStatus.isConnected ? 'Connected' : 'Disconnected'}
+          {lastUpdate && ` • Last update: ${new Date(lastUpdate).toLocaleTimeString()}`}
+        </span>
+      </div>
+    )
+  }
+
+  // Activity Feed Component
+  const ActivityFeed = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <Activity className="h-5 w-5" />
+          <span>Live Activity</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-64">
+          <div className="space-y-2">
+            {activityFeed.slice(-10).map((item) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="p-2 bg-muted/50 rounded text-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <span>{item.message}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(item.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+            {activityFeed.length === 0 && (
+              <p className="text-muted-foreground text-center py-4">
+                No recent activity
+              </p>
+            )}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  )
+
+  // Live Statistics Component  
+  const LiveStatistics = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <TrendingUp className="h-5 w-5" />
+          <span>Live Statistics</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <p className="text-2xl font-bold">{liveStats.totalProblemsToday}</p>
+            <p className="text-xs text-muted-foreground">Problems solved today</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold">{liveStats.activeUsersCount}</p>
+            <p className="text-xs text-muted-foreground">Active users</p>
+          </div>
+        </div>
+        
+        {liveStats.topPerformers.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2">Top Performers</h4>
+            <div className="space-y-1">
+              {liveStats.topPerformers.map((performer, index) => (
+                <div key={index} className="flex items-center justify-between text-sm">
+                  <span>{performer.username}</span>
+                  <span className="text-muted-foreground">{performer.achievement}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+
+  // Notification System
+  const NotificationSystem = () => (
+    <div className="fixed top-4 right-4 z-50 space-y-2">
+      <AnimatePresence>
+        {notifications.map((notification) => (
+          <motion.div
+            key={notification.id}
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className={`p-4 rounded-lg shadow-lg min-w-[300px] ${
+              notification.type === 'success' ? 'bg-green-100 border-green-500' :
+              notification.type === 'warning' ? 'bg-yellow-100 border-yellow-500' :
+              'bg-blue-100 border-blue-500'
+            } border-l-4`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                {notification.type === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                {notification.type === 'warning' && <AlertCircle className="h-4 w-4 text-yellow-600" />}
+                {notification.type === 'info' && <Bell className="h-4 w-4 text-blue-600" />}
+                <span className="text-sm font-medium">{notification.message}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeNotification(notification.id)}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  )
+
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
@@ -405,7 +730,10 @@ const Leaderboards: React.FC = () => {
     : data.groups[selectedGroup] || { xp: [], problemsSolved: [], streak: [] }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
+      {/* Notification System */}
+      <NotificationSystem />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -413,6 +741,7 @@ const Leaderboards: React.FC = () => {
           <p className="text-muted-foreground">
             Compete with fellow coders and track your ranking
           </p>
+          <ConnectionStatusIndicator />
         </div>
         
         <div className="flex items-center space-x-2">
@@ -541,22 +870,25 @@ const Leaderboards: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Leaderboard Tabs */}
-      <Tabs defaultValue="xp" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="xp" className="flex items-center space-x-2">
-            <Zap className="h-4 w-4" />
-            <span>Experience Points</span>
-          </TabsTrigger>
-          <TabsTrigger value="problemsSolved" className="flex items-center space-x-2">
-            <Target className="h-4 w-4" />
-            <span>Problems Solved</span>
-          </TabsTrigger>
-          <TabsTrigger value="streak" className="flex items-center space-x-2">
-            <Flame className="h-4 w-4" />
-            <span>Streak</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Leaderboard Tabs - Main Content */}
+        <div className="lg:col-span-3">
+          <Tabs defaultValue="xp" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="xp" className="flex items-center space-x-2">
+                <Zap className="h-4 w-4" />
+                <span>Experience Points</span>
+              </TabsTrigger>
+              <TabsTrigger value="problemsSolved" className="flex items-center space-x-2">
+                <Target className="h-4 w-4" />
+                <span>Problems Solved</span>
+              </TabsTrigger>
+              <TabsTrigger value="streak" className="flex items-center space-x-2">
+                <Flame className="h-4 w-4" />
+                <span>Streak</span>
+              </TabsTrigger>
+            </TabsList>
 
         {(['xp', 'problemsSolved', 'streak'] as const).map((type) => (
           <TabsContent key={type} value={type} className="space-y-4">
@@ -582,7 +914,7 @@ const Leaderboards: React.FC = () => {
                       entry={entry}
                       type={type}
                       index={index}
-                      currentUser={user?.id}
+                      currentUser={(user as any)?.id}
                     />
                   ))}
                 </AnimatePresence>
@@ -597,9 +929,17 @@ const Leaderboards: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+            </TabsContent>
+          ))}
+          </Tabs>
+        </div>
+        
+        {/* Sidebar - Activity Feed and Statistics */}
+        <div className="lg:col-span-1 space-y-6">
+          <ActivityFeed />
+          <LiveStatistics />
+        </div>
+      </div>
     </div>
   )
 }
