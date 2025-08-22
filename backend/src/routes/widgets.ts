@@ -13,6 +13,13 @@ const router = Router()
 router.get('/leetcode/:username', optionalAuthenticate, async (req, res) => {
   try {
     const { username } = req.params
+    if (!username) {
+      res.status(400).json({
+        success: false,
+        message: 'Username is required'
+      })
+      return
+    }
     
     // Get data from platform service with caching
     const data = await PlatformService.getLeetCodeStats(username)
@@ -20,8 +27,8 @@ router.get('/leetcode/:username', optionalAuthenticate, async (req, res) => {
     res.json({
       success: true,
       data,
-      cached: data.cached || false,
-      lastUpdated: data.lastUpdated
+      cached: false,
+      lastUpdated: new Date().toISOString()
     })
   } catch (error) {
     logger.error('LeetCode widget error:', error)
@@ -30,7 +37,7 @@ router.get('/leetcode/:username', optionalAuthenticate, async (req, res) => {
     res.json({
       success: true,
       data: {
-        handle: req.params.username,
+        handle: req.params['username'],
         totalSolved: 0,
         easySolved: 0,
         mediumSolved: 0,
@@ -51,6 +58,13 @@ router.get('/leetcode/:username', optionalAuthenticate, async (req, res) => {
 router.get('/codeforces/:username', optionalAuthenticate, async (req, res) => {
   try {
     const { username } = req.params
+    if (!username) {
+      res.status(400).json({
+        success: false,
+        message: 'Username is required'
+      })
+      return
+    }
     
     // Get data from platform service with caching
     const data = await PlatformService.getCodeforcesStats(username)
@@ -58,8 +72,8 @@ router.get('/codeforces/:username', optionalAuthenticate, async (req, res) => {
     res.json({
       success: true,
       data,
-      cached: data.cached || false,
-      lastUpdated: data.lastUpdated
+      cached: false,
+      lastUpdated: new Date().toISOString()
     })
   } catch (error) {
     logger.error('Codeforces widget error:', error)
@@ -68,7 +82,7 @@ router.get('/codeforces/:username', optionalAuthenticate, async (req, res) => {
     res.json({
       success: true,
       data: {
-        handle: req.params.username,
+        handle: req.params['username'],
         rating: 0,
         maxRating: 0,
         rank: 'Unrated',
@@ -121,6 +135,13 @@ router.get('/hackerearth/:username', optionalAuthenticate, async (req, res) => {
 router.get('/github/:username', optionalAuthenticate, async (req, res) => {
   try {
     const { username } = req.params
+    if (!username) {
+      res.status(400).json({
+        success: false,
+        message: 'Username is required'
+      })
+      return
+    }
     
     // Get data from platform service with caching
     const data = await PlatformService.getGitHubStats(username)
@@ -128,8 +149,8 @@ router.get('/github/:username', optionalAuthenticate, async (req, res) => {
     res.json({
       success: true,
       data,
-      cached: data.cached || false,
-      lastUpdated: data.lastUpdated
+      cached: false,
+      lastUpdated: new Date().toISOString()
     })
   } catch (error) {
     logger.error('GitHub widget error:', error)
@@ -138,7 +159,7 @@ router.get('/github/:username', optionalAuthenticate, async (req, res) => {
     res.json({
       success: true,
       data: {
-        handle: req.params.username,
+        handle: req.params['username'],
         publicRepos: 0,
         followers: 0,
         following: 0,
@@ -178,7 +199,9 @@ router.get('/streak', authenticate, async (req, res) => {
     userProgress.activityLog.forEach(activity => {
       if (activity.type === 'problem_solved' && activity.date >= thirtyDaysAgo) {
         const dateKey = activity.date.toISOString().split('T')[0]
-        activeDates.add(dateKey)
+        if (dateKey) {
+          activeDates.add(dateKey)
+        }
       }
     })
     
@@ -187,7 +210,9 @@ router.get('/streak', authenticate, async (req, res) => {
       const date = new Date(thirtyDaysAgo)
       date.setDate(date.getDate() + i)
       const dateKey = date.toISOString().split('T')[0]
-      streakCalendar[dateKey] = activeDates.has(dateKey)
+      if (dateKey) {
+        streakCalendar[dateKey] = activeDates.has(dateKey)
+      }
     }
     
     // Calculate weekly stats (last 7 days)
@@ -233,14 +258,15 @@ router.get('/streak', authenticate, async (req, res) => {
 })
 
 // Get all widgets data for authenticated user
-router.get('/dashboard', authenticate, async (req, res) => {
+router.get('/dashboard', authenticate, async (req, res): Promise<void> => {
   try {
     const user = await User.findById(req.user!._id)
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       })
+      return
     }
     
     const results: any = {

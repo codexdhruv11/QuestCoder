@@ -372,7 +372,9 @@ export class PlatformService {
       // Convert to percentages
       const totalRepos = Object.values(languages).reduce((sum: number, count: number) => sum + count, 0)
       for (const lang in languages) {
-        languages[lang] = Math.round((languages[lang] / totalRepos) * 100)
+        if (languages[lang] !== undefined && totalRepos > 0) {
+          languages[lang] = Math.round((languages[lang] / totalRepos) * 100)
+        }
       }
 
       const stats: GitHubStats = {

@@ -66,7 +66,7 @@ router.get('/badges', async (req: Request, res: Response) => {
  * GET /gamification/leaderboard
  * Get leaderboard rankings
  */
-router.get('/leaderboard', async (req: Request, res: Response) => {
+router.get('/leaderboard', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = new mongoose.Types.ObjectId(req.user!._id)
     const { 
@@ -85,50 +85,56 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
           { limit: parseInt(limit as string), offset: parseInt(offset as string), timeframe: timeframe as any },
           userId
         )
-        return res.json({
+        res.json({
           success: true,
           data: groupLeaderboard
         })
+        return
       } catch (error) {
         logger.error('Error getting group leaderboard:', error)
-        return res.status(500).json({
+        res.status(500).json({
           success: false,
           message: 'Failed to get group leaderboard'
         })
+        return
       }
     }
 
     const validTypes = ['xp', 'problems', 'streak']
     if (!validTypes.includes(type as string)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid leaderboard type. Must be xp, problems, or streak'
       })
+      return
     }
 
     const validTimeframes = ['all', 'monthly', 'weekly', 'daily']
     if (!validTimeframes.includes(timeframe as string)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid timeframe. Must be all, monthly, weekly, or daily'
       })
+      return
     }
 
     const limitNumber = parseInt(limit as string)
     const offsetNumber = parseInt(offset as string)
 
     if (isNaN(limitNumber) || limitNumber < 1 || limitNumber > 100) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid limit. Must be between 1 and 100'
       })
+      return
     }
 
     if (isNaN(offsetNumber) || offsetNumber < 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid offset. Must be 0 or greater'
       })
+      return
     }
 
     const filters = {
@@ -149,10 +155,11 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
         leaderboard = await LeaderboardService.getStreakLeaderboard(filters, userId)
         break
       default:
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Invalid leaderboard type'
         })
+        return
     }
     
     res.json({
@@ -289,7 +296,7 @@ router.post('/initialize', async (req: Request, res: Response) => {
 router.post('/badges/:id/claim', async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId(req.user!._id)
-    const badgeId = new mongoose.Types.ObjectId(req.params.id)
+    const badgeId = new mongoose.Types.ObjectId(req.params['id'])
     
     // Check and unlock eligible badges (this will validate eligibility)
     const unlockedBadges = await GamificationService.checkAndUnlockBadges(userId)

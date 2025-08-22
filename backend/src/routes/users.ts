@@ -9,15 +9,16 @@ import bcrypt from 'bcryptjs'
 const router = Router()
 
 // Get user profile (requires authentication)
-router.get('/profile', authenticate, async (req, res) => {
+router.get('/profile', authenticate, async (req, res): Promise<void> => {
   try {
     const user = await User.findById(req.user!._id)
     
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       })
+      return
     }
 
     res.json({
@@ -34,7 +35,7 @@ router.get('/profile', authenticate, async (req, res) => {
 })
 
 // Update user profile
-router.put('/profile', authenticate, validateUpdateProfile, async (req, res) => {
+router.put('/profile', authenticate, validateUpdateProfile, async (req, res): Promise<void> => {
   try {
     const { username, email, leetcodeHandle, codeforcesHandle, githubHandle, hackerrankHandle, hackerearthHandle } = req.body
     const userId = req.user!._id
@@ -51,10 +52,11 @@ router.put('/profile', authenticate, validateUpdateProfile, async (req, res) => 
 
       if (existingUser) {
         const field = existingUser.username === username ? 'username' : 'email'
-        return res.status(409).json({
+        res.status(409).json({
           success: false,
-          message: `${field.charAt(0).toUpperCase() + field.slice(1)} is already taken`
+          message: `User with this ${field} already exists`
         })
+        return
       }
     }
 
@@ -75,10 +77,11 @@ router.put('/profile', authenticate, validateUpdateProfile, async (req, res) => 
     )
 
     if (!updatedUser) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       })
+      return
     }
 
     logger.info(`Profile updated for user: ${updatedUser.username} (${updatedUser.email})`)
@@ -92,11 +95,12 @@ router.put('/profile', authenticate, validateUpdateProfile, async (req, res) => 
     logger.error('Update profile error:', error)
     
     if (error.name === 'ValidationError') {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Validation failed',
         errors: Object.values(error.errors).map((e: any) => e.message)
       })
+      return
     }
 
     res.status(500).json({
@@ -107,7 +111,7 @@ router.put('/profile', authenticate, validateUpdateProfile, async (req, res) => 
 })
 
 // Change user password
-router.put('/password', authenticate, validateChangePassword, async (req, res) => {
+router.put('/password', authenticate, validateChangePassword, async (req, res): Promise<void> => {
   try {
     const { currentPassword, newPassword } = req.body
     const userId = req.user!._id
@@ -116,19 +120,21 @@ router.put('/password', authenticate, validateChangePassword, async (req, res) =
     const user = await User.findById(userId).select('+password')
     
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'User not found'
       })
+      return
     }
 
     // Verify current password
     const isValidPassword = await user.comparePassword(currentPassword)
     if (!isValidPassword) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
-        message: 'Current password is incorrect'
+        message: 'Invalid password'
       })
+      return
     }
 
     // Hash new password

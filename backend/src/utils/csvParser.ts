@@ -88,12 +88,12 @@ export class CSVParser {
           try {
             // Clean and validate the row data
             const problem: CSVProblem = {
-              pattern: row.Pattern?.trim() || row.pattern?.trim() || '',
-              subPattern: row['Sub Pattern']?.trim() || row.subPattern?.trim() || row['sub-pattern']?.trim() || '',
+              pattern: row['Pattern Category']?.trim() || row.Pattern?.trim() || row.pattern?.trim() || '',
+              subPattern: row['Sub-Pattern']?.trim() || row['Sub Pattern']?.trim() || row.subPattern?.trim() || row['sub-pattern']?.trim() || '',
               problemName: row['Problem Name']?.trim() || row.problemName?.trim() || row.name?.trim() || '',
               difficulty: this.normalizeDifficulty(row.Difficulty?.trim() || row.difficulty?.trim() || ''),
               platform: this.normalizePlatform(row.Platform?.trim() || row.platform?.trim() || ''),
-              problemUrl: row['Problem URL']?.trim() || row.problemUrl?.trim() || row.url?.trim() || undefined,
+              problemUrl: row.URL?.trim() || row['Problem URL']?.trim() || row.problemUrl?.trim() || row.url?.trim() || undefined,
               videoSolutionUrl: row['Video Solution URL']?.trim() || row.videoSolutionUrl?.trim() || row.videoUrl?.trim() || undefined,
               notes: row.Notes?.trim() || row.notes?.trim() || undefined
             }
@@ -239,11 +239,44 @@ export class CSVParser {
   private static categorizePattern(pattern: string): string {
     const normalized = pattern.toLowerCase()
     
-    // Array/String patterns
-    if (normalized.includes('array') || normalized.includes('string') || 
-        normalized.includes('pointer') || normalized.includes('sliding') ||
-        normalized.includes('prefix') || normalized.includes('suffix')) {
-      return 'Array/String'
+    // Two Pointers
+    if (normalized.includes('two pointers') || normalized.includes('pointer')) {
+      return 'Two Pointers'
+    }
+    
+    // Fast & Slow Pointers
+    if (normalized.includes('fast') && normalized.includes('slow')) {
+      return 'Fast & Slow Pointers'
+    }
+    
+    // Sliding Window
+    if (normalized.includes('sliding window')) {
+      return 'Sliding Window'
+    }
+    
+    // Merge Intervals
+    if (normalized.includes('merge intervals') || normalized.includes('interval')) {
+      return 'Intervals'
+    }
+    
+    // Cyclic Sort
+    if (normalized.includes('cyclic sort')) {
+      return 'Cyclic Sort'
+    }
+    
+    // LinkedList Reversal
+    if (normalized.includes('linkedlist') || normalized.includes('reversal')) {
+      return 'LinkedList'
+    }
+    
+    // Stack/Monotonic Stack
+    if (normalized.includes('stack')) {
+      return 'Stack'
+    }
+    
+    // Hash Maps
+    if (normalized.includes('hash') || normalized.includes('map')) {
+      return 'Hash Maps'
     }
     
     // Tree patterns
@@ -254,30 +287,74 @@ export class CSVParser {
     
     // Graph patterns
     if (normalized.includes('graph') || normalized.includes('dfs') ||
-        normalized.includes('bfs') || normalized.includes('topological')) {
+        normalized.includes('bfs') || normalized.includes('island')) {
       return 'Graphs'
+    }
+    
+    // Subsets/Backtracking
+    if (normalized.includes('subset') || normalized.includes('backtracking')) {
+      return 'Backtracking'
+    }
+    
+    // Binary Search
+    if (normalized.includes('binary search') || normalized.includes('modified binary')) {
+      return 'Binary Search'
+    }
+    
+    // Bitwise XOR
+    if (normalized.includes('bitwise') || normalized.includes('xor')) {
+      return 'Bit Manipulation'
+    }
+    
+    // Top K Elements
+    if (normalized.includes('top k')) {
+      return 'Top K Elements'
+    }
+    
+    // K-way Merge
+    if (normalized.includes('k-way') || normalized.includes('merge')) {
+      return 'K-way Merge'
+    }
+    
+    // Greedy
+    if (normalized.includes('greedy')) {
+      return 'Greedy'
     }
     
     // DP patterns
     if (normalized.includes('dp') || normalized.includes('dynamic') ||
-        normalized.includes('memoization') || normalized.includes('knapsack')) {
+        normalized.includes('knapsack')) {
       return 'Dynamic Programming'
     }
     
-    // Search patterns
-    if (normalized.includes('binary search') || normalized.includes('search')) {
-      return 'Search'
+    // Topological Sort
+    if (normalized.includes('topological')) {
+      return 'Topological Sort'
     }
     
-    // Sort patterns
-    if (normalized.includes('sort') || normalized.includes('merge') ||
-        normalized.includes('quick')) {
-      return 'Sorting'
+    // Union Find
+    if (normalized.includes('union find')) {
+      return 'Union Find'
+    }
+    
+    // Segment Tree
+    if (normalized.includes('segment tree')) {
+      return 'Segment Tree'
+    }
+    
+    // Binary Indexed Tree
+    if (normalized.includes('binary indexed')) {
+      return 'Binary Indexed Tree'
+    }
+    
+    // String Algorithms
+    if (normalized.includes('string')) {
+      return 'String Algorithms'
     }
     
     // Math patterns
     if (normalized.includes('math') || normalized.includes('number') ||
-        normalized.includes('bit') || normalized.includes('prime')) {
+        normalized.includes('prime')) {
       return 'Mathematics'
     }
     
@@ -323,8 +400,13 @@ export class CSVParser {
 
       pattern.subPatterns.forEach(subPattern => {
         subPattern.problems.forEach(problem => {
-          difficultyBreakdown[problem.difficulty]++
-          platformBreakdown[problem.platform] = (platformBreakdown[problem.platform] || 0) + 1
+          if (problem.difficulty && problem.difficulty in difficultyBreakdown) {
+            const currentCount = difficultyBreakdown[problem.difficulty] || 0
+            difficultyBreakdown[problem.difficulty] = currentCount + 1
+          }
+          if (problem.platform) {
+            platformBreakdown[problem.platform] = (platformBreakdown[problem.platform] || 0) + 1
+          }
         })
       })
     })

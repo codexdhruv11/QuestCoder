@@ -155,6 +155,14 @@ export class LeaderboardService {
         { $unwind: '$user' },
         { $match: { 'user.isActive': true } },
         {
+          $lookup: {
+            from: 'usergamifications',
+            localField: 'userId',
+            foreignField: 'userId',
+            as: 'gamification'
+          }
+        },
+        {
           $addFields: {
             problemsSolved: {
               $size: {
@@ -169,7 +177,8 @@ export class LeaderboardService {
                   }
                 }
               }
-            }
+            },
+            currentLevel: { $arrayElemAt: ['$gamification.currentLevel', 0] }
           }
         },
         { $sort: { problemsSolved: -1, lastSolvedAt: -1 } },
@@ -179,6 +188,7 @@ export class LeaderboardService {
             problemsSolved: 1,
             currentStreak: 1,
             lastSolvedAt: 1,
+            currentLevel: 1,
             'user.username': 1,
             'user._id': 1
           }
@@ -205,6 +215,8 @@ export class LeaderboardService {
         score: entry.problemsSolved,
         metadata: {
           streak: entry.currentStreak,
+          level: entry.currentLevel,
+          currentLevel: entry.currentLevel,
           lastActive: entry.lastSolvedAt
         }
       }))
@@ -256,6 +268,19 @@ export class LeaderboardService {
         },
         { $unwind: '$user' },
         { $match: { 'user.isActive': true, currentStreak: { $gt: 0 } } },
+        {
+          $lookup: {
+            from: 'usergamifications',
+            localField: 'userId',
+            foreignField: 'userId',
+            as: 'gamification'
+          }
+        },
+        {
+          $addFields: {
+            currentLevel: { $arrayElemAt: ['$gamification.currentLevel', 0] }
+          }
+        },
         { $sort: { currentStreak: -1, longestStreak: -1, lastSolvedAt: -1 } },
         {
           $project: {
@@ -263,6 +288,7 @@ export class LeaderboardService {
             currentStreak: 1,
             longestStreak: 1,
             lastSolvedAt: 1,
+            currentLevel: 1,
             'user.username': 1,
             'user._id': 1
           }
@@ -289,6 +315,8 @@ export class LeaderboardService {
         score: entry.currentStreak,
         metadata: {
           longestStreak: entry.longestStreak,
+          level: entry.currentLevel,
+          currentLevel: entry.currentLevel,
           lastActive: entry.lastSolvedAt
         }
       }))

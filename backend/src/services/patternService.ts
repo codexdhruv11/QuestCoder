@@ -48,7 +48,7 @@ export class PatternService {
         this.patternsCache = JSON.parse(jsonData)
         this.lastCacheUpdate = now
         logger.info('Patterns loaded from cached JSON file')
-        return this.patternsCache
+        return this.patternsCache || []
       } catch {
         logger.info('No cached patterns JSON found, parsing CSV...')
       }
@@ -62,8 +62,8 @@ export class PatternService {
       await fs.mkdir(path.dirname(jsonPath), { recursive: true })
       await fs.writeFile(jsonPath, JSON.stringify(this.patternsCache, null, 2))
       
-      logger.info(`Patterns service loaded ${this.patternsCache.length} patterns from CSV`)
-      return this.patternsCache
+      logger.info(`Patterns service loaded ${this.patternsCache?.length || 0} patterns from CSV`)
+      return this.patternsCache || []
     } catch (error) {
       logger.error('Failed to load patterns data:', error)
       // Return empty array as fallback
@@ -80,10 +80,13 @@ export class PatternService {
   }
 
   /**
-   * Get patterns with filters
+   * Get patterns with filters including problem-level filtering for platform and difficulty
+   * When platform/difficulty filters are present, the same problem must satisfy all filters
+   * including search term if provided. Pattern/subPattern metadata search only when no problem-level filters are supplied.
    */
   static async getFilteredPatterns(filters: {
     category?: string
+    platform?: string
     difficulty?: string
     search?: string
     limit?: number
@@ -92,30 +95,106 @@ export class PatternService {
     const patterns = await this.loadPatterns()
     let filtered = [...patterns]
 
-    // Apply filters
+    // Precompute filter values once
+    const searchTerm = filters.search?.toLowerCase().trim()
+    const filterPlatform = filters.platform?.toLowerCase().trim()
+    const filterDifficulty = filters.difficulty?.toLowerCase().trim()
+    const hasProblemLevelFilters = !!(filterPlatform || filterDifficulty)
+
+    // Apply category filter at pattern level
     if (filters.category) {
       filtered = filtered.filter(p => 
         p.category?.toLowerCase() === filters.category?.toLowerCase()
       )
     }
 
-    if (filters.difficulty) {
-      filtered = filtered.filter(p => 
-        p.difficulty?.toLowerCase() === filters.difficulty?.toLowerCase()
-      )
-    }
+    // Apply filters
+    if (hasProblemLevelFilters || searchTerm) {
+      filtered = filtered.filter(pattern => {
+        // Check if pattern has subPatterns with problems
+        if (!pattern.subPatterns || !Array.isArray(pattern.subPatterns)) {
+          // If no subPatterns, only apply search to pattern metadata when no problem-level filters
+          if (searchTerm && !hasProblemLevelFilters) {
+            return (
+              pattern.name?.toLowerCase().includes(searchTerm) ||
+              pattern.description?.toLowerCase().includes(searchTerm) ||
+              pattern.keyPoints?.some((point: string) => point.toLowerCase().includes(searchTerm))
+            )
+          }
+          return false // No problems to match platform/difficulty filters
+        }
 
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase()
-      filtered = filtered.filter(p =>
-        p.name?.toLowerCase().includes(searchTerm) ||
-        p.description?.toLowerCase().includes(searchTerm) ||
-        p.keyPoints?.some((point: string) => point.toLowerCase().includes(searchTerm))
-      )
+        // When problem-level filters are present, same problem must match all conditions
+        if (hasProblemLevelFilters) {
+          return pattern.subPatterns.some((subPattern: any) => {
+            if (!subPattern.problems || !Array.isArray(subPattern.problems)) {
+              return false
+            }
+            
+            return subPattern.problems.some((problem: any) => {
+              // Check platform filter
+              if (filterPlatform) {
+                const problemPlatform = problem.platform?.toLowerCase()
+                if (problemPlatform !== filterPlatform) {
+                  return false
+                }
+              }
+              
+              // Check difficulty filter
+              if (filterDifficulty) {
+                const problemDifficulty = problem.difficulty?.toLowerCase()
+                if (problemDifficulty !== filterDifficulty) {
+                  return false
+                }
+              }
+              
+              // Check search term on problem name when problem-level filters are present
+              if (searchTerm) {
+                const problemName = problem.name?.toLowerCase()
+                if (!problemName || !problemName.includes(searchTerm)) {
+                  return false
+                }
+              }
+              
+              return true // Same problem matches all specified filters
+            })
+          })
+        }
+
+        // When no problem-level filters, search in pattern/subPattern metadata and problem names
+        if (searchTerm) {
+          // First check pattern-level metadata
+          if (
+            pattern.name?.toLowerCase().includes(searchTerm) ||
+            pattern.description?.toLowerCase().includes(searchTerm) ||
+            pattern.keyPoints?.some((point: string) => point.toLowerCase().includes(searchTerm))
+          ) {
+            return true
+          }
+          
+          // Then check subPatterns and problem names
+          return pattern.subPatterns.some((subPattern: any) => {
+            // Check subPattern name
+            if (subPattern.name?.toLowerCase().includes(searchTerm)) {
+              return true
+            }
+            
+            // Check problem names
+            if (subPattern.problems && Array.isArray(subPattern.problems)) {
+              return subPattern.problems.some((problem: any) => 
+                problem.name?.toLowerCase().includes(searchTerm)
+              )
+            }
+            return false
+          })
+        }
+
+        return true // No filters to apply
+      })
     }
 
     // Apply pagination
-    const limit = Math.min(filters.limit || 50, 100)
+    const limit = Math.min(filters.limit ?? 20, 100)
     const offset = Math.max(filters.offset || 0, 0)
     const paginatedPatterns = filtered.slice(offset, offset + limit)
 
@@ -191,7 +270,7 @@ export class PatternService {
     // Calculate completion rates
     Object.keys(stats.progressByCategory).forEach(category => {
       const categoryData = stats.progressByCategory[category]
-      if (categoryData.total > 0) {
+      if (categoryData && categoryData.total > 0) {
         categoryData.completion = Math.round((categoryData.solved / categoryData.total) * 100)
       }
     })
@@ -342,7 +421,7 @@ export class PatternService {
 
       } else if (!solved && isCurrentlySolved) {
         // Mark as unsolved
-        patternProgress.solvedProblemIds = patternProgress.solvedProblemIds?.filter(id => id !== problemId) || []
+        patternProgress.solvedProblemIds = patternProgress.solvedProblemIds?.filter((id: any) => id !== problemId) || []
         patternProgress.solvedProblems = Math.max(0, (patternProgress.solvedProblems || 0) - 1)
 
         // Log activity

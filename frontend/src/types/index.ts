@@ -3,6 +3,7 @@ export interface User {
   _id: string
   username: string
   email: string
+  role: 'user' | 'admin'
   leetcodeHandle?: string
   codeforcesHandle?: string
   githubHandle?: string
@@ -30,15 +31,27 @@ export interface Problem {
   problemUrl?: string
   videoSolutionUrl?: string
   notes?: string
+  solved?: boolean
+  completed?: boolean
+  patternId?: string  // Add stable pattern ID
+  patternName?: string
+  subPatternName?: string
+  category?: string
 }
 
 export interface Pattern {
-  id?: string
+  id: string  // Required: backend should provide ID, or frontend generates slug from name as fallback
   name: string
   subPatterns: SubPattern[]
   totalProblems: number
   solvedProblems: number
   category: string
+  userProgress?: {
+    solvedProblems: number
+    totalProblems: number
+    completionRate: number
+    solvedProblemIds: string[]
+  }
 }
 
 export interface SubPattern {
@@ -156,6 +169,19 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
     limit: number
     total: number
     totalPages: number
+    hasMore?: boolean
+    offset?: number
+  }
+}
+
+// Patterns API response type
+export interface PatternsListResponse extends ApiResponse<Pattern[]> {
+  pagination: {
+    total: number
+    limit: number
+    offset: number
+    totalPages: number
+    hasMore: boolean
   }
 }
 
@@ -169,7 +195,6 @@ export interface SignupForm {
   username: string
   email: string
   password: string
-  confirmPassword: string
   leetcodeHandle?: string
   codeforcesHandle?: string
   githubHandle?: string
@@ -367,6 +392,17 @@ export interface Leaderboard {
   entries: LeaderboardEntry[]
   userRank?: number
   totalParticipants: number
+}
+
+// Virtualization types
+export interface FlatProblemItem {
+  type: 'header' | 'problem'
+  key: string
+  patternId?: string
+  subPatternName?: string
+  problem?: Problem
+  solvedCount?: number
+  totalCount?: number
 }
 
 // Socket.IO event types

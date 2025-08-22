@@ -67,8 +67,7 @@ const userProgressSchema = new Schema<IUserProgress>(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User ID is required'],
-      unique: true,
-      index: true
+      unique: true  // This automatically creates an index
     },
     patternProgress: {
       type: [patternProgressSchema],
@@ -107,8 +106,8 @@ const userProgressSchema = new Schema<IUserProgress>(
   }
 )
 
-// Indexes for efficient querying
-userProgressSchema.index({ userId: 1 })
+// Additional indexes for efficient querying
+// Note: userId already has an index from 'unique: true'
 userProgressSchema.index({ lastSolvedAt: -1 })
 userProgressSchema.index({ currentStreak: -1 })
 userProgressSchema.index({ 'patternProgress.patternName': 1 })

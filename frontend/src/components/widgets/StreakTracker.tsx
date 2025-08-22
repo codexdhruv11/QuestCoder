@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { widgetsAPI } from '@/lib/api'
-import { StreakData } from '@/types'
+import { StreakData, DailyActivity } from '@/types'
 import { Flame, Calendar, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -52,8 +52,8 @@ export default function StreakTracker() {
   }, [])
 
   // Generate mock activity data for the last 30 days
-  function generateMockActivity() {
-    const activities = []
+  function generateMockActivity(): DailyActivity[] {
+    const activities: DailyActivity[] = []
     const today = new Date()
     
     for (let i = 29; i >= 0; i--) {
@@ -62,7 +62,7 @@ export default function StreakTracker() {
       const dateString = date.toISOString().split('T')[0]
       
       // Simulate some activity pattern (70% chance of activity)
-      if (Math.random() > 0.3) {
+      if (Math.random() > 0.3 && dateString) {
         activities.push({
           date: dateString,
           platforms: ['LeetCode', 'GitHub'].filter(() => Math.random() > 0.5),

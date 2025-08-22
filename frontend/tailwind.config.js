@@ -47,11 +47,57 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Platform-specific colors
+        leetcode: {
+          50: '#fff7ed',
+          500: '#f97316',
+          600: '#ea580c'
+        },
+        codeforces: {
+          50: '#eff6ff',
+          500: '#3b82f6',
+          600: '#2563eb'
+        },
+        hackerrank: {
+          50: '#f0fdf4',
+          500: '#22c55e',
+          600: '#16a34a'
+        },
+        geeksforgeeks: {
+          50: '#fefce8',
+          500: '#eab308',
+          600: '#ca8a04'
+        },
+        // Enhanced difficulty colors
+        'difficulty-easy': {
+          50: '#f0fdf4',
+          500: '#22c55e',
+          600: '#16a34a'
+        },
+        'difficulty-medium': {
+          50: '#fefce8',
+          500: '#eab308',
+          600: '#ca8a04'
+        },
+        'difficulty-hard': {
+          50: '#fef2f2',
+          500: '#ef4444',
+          600: '#dc2626'
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        card: "0.75rem",
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
+      },
+      boxShadow: {
+        'problem-card': '0 2px 8px rgba(0, 0, 0, 0.1)',
+        'problem-card-hover': '0 4px 16px rgba(0, 0, 0, 0.15)',
       },
       keyframes: {
         "accordion-down": {
@@ -62,10 +108,21 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "check": {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.1)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "progress": {
+          "0%": { transform: "scaleX(0)" },
+          "100%": { transform: "scaleX(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "check": "check 0.3s ease-in-out",
+        "progress": "progress 0.5s ease-out",
       },
     },
   },

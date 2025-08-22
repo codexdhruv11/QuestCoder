@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename)
 async function convertCsvToJson() {
   try {
     // Determine CSV path from environment or use default
-    const csvPath = process.env.PATTERNS_CSV_PATH || path.join(process.cwd(), 'backend/data/patterns.csv')
+    const csvPath = process.env['PATTERNS_CSV_PATH'] || path.join(process.cwd(), 'backend/data/patterns.csv')
     const outputPath = path.join(process.cwd(), 'backend/data/patterns.json')
 
     logger.info(`Converting CSV to JSON...`)

@@ -1,15 +1,19 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { authAPI } from '@/lib/api'
 import { User, AuthResponse, LoginForm, SignupForm } from '@/types'
 
 interface AuthContextType {
+  token: string | null
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
+  isAdmin: boolean
   login: (credentials: LoginForm) => Promise<void>
   signup: (userData: SignupForm) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
+  hasRole: (role: 'user' | 'admin') => boolean
+  checkAdminAccess: () => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -23,6 +27,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   const isAuthenticated = !!user
+  const isAdmin = user?.role === 'admin'
 
   // Load user on app start
   useEffect(() => {
@@ -109,14 +114,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  // Role checking helpers
+  const hasRole = (role: 'user' | 'admin'): boolean => {
+    if (!user) return false
+    return user.role === role
+  }
+
+  const checkAdminAccess = (): boolean => {
+    return isAuthenticated && isAdmin
+  }
+
   const value: AuthContextType = {
+    token: localStorage.getItem("token"),
     user,
     isLoading,
     isAuthenticated,
+    isAdmin,
     login,
     signup,
     logout,
     refreshUser,
+    hasRole,
+    checkAdminAccess,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

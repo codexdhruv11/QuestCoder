@@ -2,39 +2,35 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/components/ui/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LevelBadge } from '@/components/gamification/LevelIndicator'
 import { communityAPI } from '@/lib/api'
-import { useSocketRoom, useSocketSubscription } from '@/hooks/useSocket'
+import { useSocket } from '@/contexts/SocketContext'
+import { useSocketSubscription } from '@/hooks/useSocket'
 import { 
   Users, 
   Plus, 
   Search, 
-  Filter, 
   Calendar,
-  Crown,
   Settings,
   UserPlus,
   UserMinus,
-  Copy,
-  ExternalLink,
   MessageCircle,
-  BarChart3,
+  Activity,
+  TrendingUp,
   Trophy,
-  Target,
-  Clock,
-  Star,
-  Bookmark,
-  Share2
+  Wifi,
+  WifiOff
 } from 'lucide-react'
 
 interface StudyGroup {
@@ -90,6 +86,50 @@ interface StudyGroupsData {
     invitedBy: string
     invitedAt: Date
   }[]
+}
+
+interface GroupActivity {
+  id: string
+  groupId: string
+  groupName: string
+  userId: string
+  username: string
+  type: 'member_joined' | 'member_left' | 'progress_update' | 'level_up' | 'badge_unlock' | 'pattern_complete'
+  message: string
+  timestamp: string
+  metadata?: {
+    patternName?: string
+    problemName?: string
+    level?: number
+    badgeName?: string
+    achievements?: string[]
+  }
+}
+
+interface GroupStats {
+  groupId: string
+  totalProblems: number
+  totalXP: number
+  averageLevel: number
+  mostActiveMembers: Array<{
+    username: string
+    problemsSolved: number
+    xpGained: number
+  }>
+  recentMilestones: Array<{
+    type: 'level_up' | 'badge_unlock' | 'pattern_complete'
+    username: string
+    achievement: string
+    timestamp: string
+  }>
+}
+
+interface MemberPresence {
+  userId: string
+  username: string
+  isOnline: boolean
+  lastSeen: string
+  currentActivity?: 'solving_problems' | 'viewing_patterns' | 'idle'
 }
 
 const roleColors = {
@@ -355,21 +395,160 @@ const StudyGroups: React.FC = () => {
   const [data, setData] = useState<StudyGroupsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterTags, setFilterTags] = useState<string[]>([])
+  const [filterTags] = useState<string[]>([])
   const [sortBy, setSortBy] = useState('members')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const { toast } = useToast()
+  
+  // Real-time state
+  const [groupActivities, setGroupActivities] = useState<Map<string, GroupActivity[]>>(new Map())
+  const [groupStats, setGroupStats] = useState<Map<string, GroupStats>>(new Map())
+  const [memberPresence] = useState<Map<string, MemberPresence[]>>(new Map())
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
+  const [joinedRooms, setJoinedRooms] = useState<Set<string>>(new Set())
+  
+  // Socket context
+  const { 
+    groupActivityFeed, 
+    recentProgressUpdates, 
+    connectionStatus, 
+    joinGroup, 
+    leaveGroup
+  } = useSocket()
+  
+  // Refs for optimization
 
   useEffect(() => {
     fetchStudyGroups()
   }, [])
 
-  // Note: Group-specific rooms should be joined when viewing individual groups
-  // Global group discovery relies on REST polling for now
+  // Room management for user's groups
+  useEffect(() => {
+    if (data?.myGroups) {
+      // Join rooms for user's groups
+      data.myGroups.forEach(group => {
+        if (!joinedRooms.has(group._id)) {
+          joinGroup(group._id)
+          setJoinedRooms(prev => new Set(prev).add(group._id))
+        }
+      })
+      
+      // Leave rooms for groups user is no longer part of
+      joinedRooms.forEach(groupId => {
+        if (!data.myGroups.find(g => g._id === groupId)) {
+          leaveGroup(groupId)
+          setJoinedRooms(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(groupId)
+            return newSet
+          })
+        }
+      })
+    }
+    
+    return () => {
+      // Cleanup - leave all group rooms
+      joinedRooms.forEach(groupId => {
+        leaveGroup(groupId)
+      })
+    }
+  }, [data?.myGroups, joinGroup, leaveGroup])
+
+  // Process group activity feed for real-time updates
+  useEffect(() => {
+    if (groupActivityFeed.length > 0) {
+      groupActivityFeed.forEach(update => {
+        const activity: GroupActivity = {
+          id: `${update.userId}_${update.timestamp}`,
+          groupId: update.groupInfo.groupId,
+          groupName: update.groupInfo.groupName,
+          userId: update.userId,
+          username: update.username,
+          type: 'progress_update',
+          message: `${update.username} solved "${update.progressData.problemName}" on ${update.progressData.platform}`,
+          timestamp: update.timestamp,
+          metadata: {
+            patternName: update.progressData.patternName,
+            problemName: update.progressData.problemName,
+            achievements: update.progressData.achievements || []
+          }
+        }
+        
+        setGroupActivities(prev => {
+          const newMap = new Map(prev)
+          const groupActivities = newMap.get(update.groupInfo.groupId) || []
+          newMap.set(update.groupInfo.groupId, [...groupActivities, activity].slice(-20))
+          return newMap
+        })
+      })
+    }
+  }, [groupActivityFeed])
+
+  // Process progress updates for live member progress tracking
+  useEffect(() => {
+    if (recentProgressUpdates.length > 0) {
+      // Update group stats based on progress updates
+      recentProgressUpdates.forEach(update => {
+        // Find which groups this user belongs to
+        data?.myGroups.forEach(group => {
+          if (group.members.find(m => m.userId === update.userId)) {
+            setGroupStats(prev => {
+              const newMap = new Map(prev)
+              const currentStats = newMap.get(group._id) || {
+                groupId: group._id,
+                totalProblems: 0,
+                totalXP: 0,
+                averageLevel: 0,
+                mostActiveMembers: [],
+                recentMilestones: []
+              }
+              
+              // Update stats
+              newMap.set(group._id, {
+                ...currentStats,
+                totalProblems: currentStats.totalProblems + 1
+              })
+              
+              return newMap
+            })
+          }
+        })
+      })
+    }
+  }, [recentProgressUpdates, data?.myGroups])
 
   // Listen for group activity updates with debounced refresh
   const debouncedRefresh = React.useRef<NodeJS.Timeout>()
-  useSocketSubscription('group_activity', (activityData: { groupId: string; type: string; userId?: string }) => {
+  useSocketSubscription('group_activity', (activityData: { 
+    groupId: string; 
+    activity: {
+      type: string; 
+      userId: string;
+      username: string;
+      data?: any;
+      timestamp: string;
+    }
+  }) => {
+    // Add real-time activity to feed
+    const activity: GroupActivity = {
+      id: `${activityData.activity.userId}_${activityData.activity.timestamp}`,
+      groupId: activityData.groupId,
+      groupName: data?.myGroups.find(g => g._id === activityData.groupId)?.name || 'Unknown Group',
+      userId: activityData.activity.userId,
+      username: activityData.activity.username,
+      type: activityData.activity.type as any,
+      message: getActivityMessage(activityData.activity),
+      timestamp: activityData.activity.timestamp,
+      metadata: activityData.activity.data
+    }
+    
+    setGroupActivities(prev => {
+      const newMap = new Map(prev)
+      const groupActivities = newMap.get(activityData.groupId) || []
+      newMap.set(activityData.groupId, [...groupActivities, activity].slice(-20))
+      return newMap
+    })
+    
     // Clear existing timeout
     if (debouncedRefresh.current) {
       clearTimeout(debouncedRefresh.current)
@@ -380,6 +559,24 @@ const StudyGroups: React.FC = () => {
       fetchStudyGroups()
     }, 1000) // 1 second debounce
   })
+
+  // Helper function to generate activity messages
+  const getActivityMessage = (activity: any): string => {
+    switch (activity.type) {
+      case 'member_joined':
+        return `${activity.username} joined the group`
+      case 'member_left':
+        return `${activity.username} left the group`
+      case 'progress_update':
+        return `${activity.username} solved a problem`
+      case 'level_up':
+        return `${activity.username} reached level ${activity.data?.level}`
+      case 'badge_unlock':
+        return `${activity.username} unlocked the "${activity.data?.badgeName}" badge`
+      default:
+        return `${activity.username} had an activity`
+    }
+  }
 
   const fetchStudyGroups = async () => {
     setLoading(true)
@@ -467,13 +664,13 @@ const StudyGroups: React.FC = () => {
     }
   }
 
-  const handleCopyInviteCode = (inviteCode: string) => {
-    navigator.clipboard.writeText(inviteCode)
-    toast({
-      title: "Copied!",
-      description: "Invite code copied to clipboard"
-    })
-  }
+  // const handleCopyInviteCode = (inviteCode: string) => {
+  //   navigator.clipboard.writeText(inviteCode)
+  //   toast({
+  //     title: "Copied!",
+  //     description: "Invite code copied to clipboard"
+  //   })
+  // }
 
   const filteredGroups = (groups: StudyGroup[]) => {
     return groups.filter(group => {
@@ -487,8 +684,8 @@ const StudyGroups: React.FC = () => {
         case 'members':
           return (b.members?.length || 0) - (a.members?.length || 0)
         case 'activity':
-          return new Date(b.updatedAt || 0).getTime() - 
-                 new Date(a.updatedAt || 0).getTime()
+          return new Date((b as any).updatedAt || 0).getTime() - 
+                 new Date((a as any).updatedAt || 0).getTime()
         case 'name':
           return a.name.localeCompare(b.name)
         default:
@@ -499,7 +696,7 @@ const StudyGroups: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
@@ -513,10 +710,203 @@ const StudyGroups: React.FC = () => {
     )
   }
 
+  // Real-time Activity Feed Component
+  const GroupActivityFeed = ({ groupId }: { groupId: string }) => {
+    const activities = groupActivities.get(groupId) || []
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Activity className="h-5 w-5" />
+            <span>Live Activity</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-48">
+            <div className="space-y-2">
+              {activities.map((activity) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="p-2 bg-muted/50 rounded text-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{activity.message}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(activity.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  {activity.metadata?.achievements && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {activity.metadata.achievements.map((achievement, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {achievement}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+              {activities.length === 0 && (
+                <p className="text-muted-foreground text-center py-4">
+                  No recent activity
+                </p>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Group Statistics Dashboard
+  const GroupStatsDashboard = ({ groupId }: { groupId: string }) => {
+    const stats = groupStats.get(groupId)
+    const group = data?.myGroups.find(g => g._id === groupId)
+    
+    if (!stats || !group) return null
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <TrendingUp className="h-5 w-5" />
+            <span>Group Performance</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold">{stats.totalProblems}</p>
+              <p className="text-xs text-muted-foreground">Problems Solved</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{stats.totalXP}</p>
+              <p className="text-xs text-muted-foreground">Total XP</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{stats.averageLevel.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">Avg Level</p>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <h4 className="font-medium">Top Contributors</h4>
+            {stats.mostActiveMembers.slice(0, 3).map((member, index) => (
+              <div key={index} className="flex items-center justify-between text-sm">
+                <span className="flex items-center space-x-2">
+                  <Trophy className={`h-3 w-3 ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : 'text-amber-600'}`} />
+                  <span>{member.username}</span>
+                </span>
+                <span className="text-muted-foreground">{member.problemsSolved} problems</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Member Presence Indicators
+  const MemberPresenceList = ({ groupId }: { groupId: string }) => {
+    const presence = memberPresence.get(groupId) || []
+    const group = data?.myGroups.find(g => g._id === groupId)
+    
+    if (!group) return null
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="h-5 w-5" />
+            <span>Members ({group.members.length})</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {group.members.map((member) => {
+              const memberPresenceInfo = presence.find(p => p.userId === member.userId)
+              return (
+                <div key={member.userId} className="flex items-center space-x-3">
+                  <div className="relative">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs">
+                        {member.username?.slice(0, 2).toUpperCase() || 'UN'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${
+                      memberPresenceInfo?.isOnline ? 'bg-green-500' : 'bg-gray-400'
+                    }`} />
+                    {member.level && (
+                      <LevelBadge 
+                        level={member.level} 
+                        size="sm" 
+                        className="absolute -top-1 -right-1"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium text-sm truncate">
+                        {member.username || 'Unknown User'}
+                      </p>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${roleColors[member.role]}`}
+                      >
+                        {member.role}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {memberPresenceInfo?.isOnline ? (
+                        memberPresenceInfo.currentActivity ? 
+                          `${memberPresenceInfo.currentActivity.replace('_', ' ')}` : 
+                          'Online'
+                      ) : (
+                        `Last seen ${memberPresenceInfo?.lastSeen ? 
+                          new Date(memberPresenceInfo.lastSeen).toLocaleTimeString() : 
+                          'unknown'}`
+                      )}
+                    </p>
+                  </div>
+                  {member.problemsSolved && (
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{member.problemsSolved}</p>
+                      <p className="text-xs text-muted-foreground">problems</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Connection Status Component
+  const ConnectionStatus = () => (
+    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+      {connectionStatus.isConnected ? (
+        <Wifi className="h-4 w-4 text-green-500" />
+      ) : (
+        <WifiOff className="h-4 w-4 text-red-500" />
+      )}
+      <span>
+        {connectionStatus.isConnected ? 'Connected' : 'Disconnected'}
+        {connectionStatus.lastEventReceived && (
+          ` • Last update: ${new Date(connectionStatus.lastEventReceived).toLocaleTimeString()}`
+        )}
+      </span>
+    </div>
+  )
+
   if (!data) return null
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -524,6 +914,7 @@ const StudyGroups: React.FC = () => {
           <p className="text-muted-foreground">
             Join or create study groups to learn together
           </p>
+          <ConnectionStatus />
         </div>
         
         <Button onClick={() => setShowCreateDialog(true)}>
@@ -576,16 +967,43 @@ const StudyGroups: React.FC = () => {
 
         <TabsContent value="my-groups" className="space-y-6">
           {data.myGroups.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredGroups(data.myGroups).map((group) => (
-                <StudyGroupCard
-                  key={group._id}
-                  group={group}
-                  isJoined={true}
-                  onLeave={handleLeaveGroup}
-                  onManage={(id) => console.log('Manage group:', id)}
-                />
-              ))}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Group Cards */}
+              <div className="lg:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredGroups(data.myGroups).map((group) => (
+                    <StudyGroupCard
+                      key={group._id}
+                      group={group}
+                      isJoined={true}
+                      onLeave={handleLeaveGroup}
+                      onManage={(id) => {
+                        setSelectedGroupId(selectedGroupId === id ? null : id)
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Real-time Sidebar */}
+              <div className="lg:col-span-1 space-y-6">
+                {selectedGroupId ? (
+                  <>
+                    <GroupActivityFeed groupId={selectedGroupId} />
+                    <GroupStatsDashboard groupId={selectedGroupId} />
+                    <MemberPresenceList groupId={selectedGroupId} />
+                  </>
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Click "Manage" on a group to see live activity
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
           ) : (
             <div className="text-center py-12">

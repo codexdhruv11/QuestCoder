@@ -92,7 +92,7 @@ router.get('/stats', async (req: Request, res: Response) => {
  */
 router.put('/:id/read', async (req: Request, res: Response) => {
   try {
-    const notificationId = new mongoose.Types.ObjectId(req.params.id)
+    const notificationId = new mongoose.Types.ObjectId(req.params['id'])
     const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     await NotificationService.markAsRead(notificationId, userId)
@@ -105,7 +105,7 @@ router.put('/:id/read', async (req: Request, res: Response) => {
     logger.error('Error marking notification as read:', error)
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to mark notification as read'
+      message: (error instanceof Error ? error.message : String(error)) || 'Failed to mark notification as read'
     })
   }
 })
@@ -138,7 +138,7 @@ router.put('/read-all', async (req: Request, res: Response) => {
  */
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const notificationId = new mongoose.Types.ObjectId(req.params.id)
+    const notificationId = new mongoose.Types.ObjectId(req.params['id'])
     const userId = new mongoose.Types.ObjectId(req.user!._id)
 
     await NotificationService.deleteNotification(notificationId, userId)
@@ -151,7 +151,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     logger.error('Error deleting notification:', error)
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to delete notification'
+      message: (error instanceof Error ? error.message : String(error)) || 'Failed to delete notification'
     })
   }
 })
