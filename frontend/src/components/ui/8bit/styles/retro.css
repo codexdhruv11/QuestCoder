@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+.retro {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+}
+
+/* 8-bit button styles */
+.bit-button {
+  background: #4a5568;
+  color: #ffffff;
+  border: 3px solid #2d3748;
+  border-top-color: #718096;
+  border-left-color: #718096;
+  border-right-color: #1a202c;
+  border-bottom-color: #1a202c;
+  box-shadow: inset -1px -1px #1a202c, inset 1px 1px #718096;
+  transition: all 0.1s ease;
+}
+
+.bit-button:hover {
+  background: #5a6578;
+}
+
+.bit-button:active {
+  border-top-color: #1a202c;
+  border-left-color: #1a202c;
+  border-right-color: #718096;
+  border-bottom-color: #718096;
+  box-shadow: inset 1px 1px #1a202c, inset -1px -1px #718096;
+  transform: translateY(1px);
+}
+
+/* 8-bit card styles */
+.bit-card {
+  background: #e2e8f0;
+  border: 2px solid #718096;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #4a5568;
+  border-bottom-color: #4a5568;
+  box-shadow: inset -1px -1px #4a5568, inset 1px 1px #ffffff;
+}
+
+/* 8-bit input styles */
+.bit-input {
+  background: #ffffff;
+  border: 2px solid #4a5568;
+  border-top-color: #2d3748;
+  border-left-color: #2d3748;
+  border-right-color: #cbd5e0;
+  border-bottom-color: #cbd5e0;
+  box-shadow: inset 1px 1px #2d3748, inset -1px -1px #cbd5e0;
+}
+
+.bit-input:focus {
+  outline: none;
+  box-shadow: inset 1px 1px #2d3748, inset -1px -1px #cbd5e0, 0 0 0 2px #3182ce;
+}
+
+/* 8-bit primary colors */
+.bit-primary {
+  background: #3182ce;
+  color: #ffffff;
+  border-color: #2c5aa0;
+  border-top-color: #4299e1;
+  border-left-color: #4299e1;
+  border-right-color: #2a4365;
+  border-bottom-color: #2a4365;
+}
+
+.bit-destructive {
+  background: #e53e3e;
+  color: #ffffff;
+  border-color: #c53030;
+  border-top-color: #f56565;
+  border-left-color: #f56565;
+  border-right-color: #9b2c2c;
+  border-bottom-color: #9b2c2c;
+}
+
+/* 8-bit secondary colors */
+.bit-secondary {
+  background: #a0aec0;
+  color: #2d3748;
+  border-color: #718096;
+  border-top-color: #cbd5e0;
+  border-left-color: #cbd5e0;
+  border-right-color: #4a5568;
+  border-bottom-color: #4a5568;
+}
