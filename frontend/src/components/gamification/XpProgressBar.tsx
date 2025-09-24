@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import '@/components/ui/8bit/styles/retro.css'
 
 
 interface XpProgressBarProps {
@@ -38,16 +39,16 @@ const XpProgressBar: React.FC<XpProgressBarProps> = ({
             <motion.span
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-muted-foreground"
+              className="retro text-muted-foreground"
             >
               Level {level}
             </motion.span>
           )}
           {!animated && (
-            <span className="text-muted-foreground">Level {level}</span>
+            <span className="retro text-muted-foreground">Level {level}</span>
           )}
           
-          <span className="font-medium">
+          <span className="retro font-medium">
             {safeCurrentXp} / {safeRequiredXp} XP
           </span>
         </div>
@@ -73,13 +74,13 @@ const XpProgressBar: React.FC<XpProgressBarProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-xs text-center text-muted-foreground"
+          className="retro text-xs text-center text-muted-foreground"
         >
           {isNaN(percentage) ? '0' : percentage.toFixed(0)}% to next level
         </motion.div>
       )}
       {!animated && (
-        <div className="text-xs text-center text-muted-foreground">
+        <div className="retro text-xs text-center text-muted-foreground">
           {isNaN(percentage) ? '0' : percentage.toFixed(0)}% to next level
         </div>
       )}
