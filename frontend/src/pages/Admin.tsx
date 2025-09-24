@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSocket } from '@/contexts/SocketContext'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Button } from '@/components/ui/8bit/button'
+import { Badge } from '@/components/ui/8bit/badge'
 import { Navigate } from 'react-router-dom'
 import { 
   Users, 
@@ -154,7 +154,7 @@ const Admin: React.FC = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <Card>
+        <Card font="retro">
           <CardContent className="p-6">
             <div className="flex items-center space-x-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
@@ -196,7 +196,7 @@ const Admin: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <h1 className="retro text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600">Manage users and monitor platform health</p>
         </div>
         <Badge variant="secondary" className="flex items-center space-x-1">
@@ -238,9 +238,9 @@ const Admin: React.FC = () => {
         <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
+            <Card font="retro">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <CardTitle font="retro" className="text-sm font-medium">Total Users</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -251,9 +251,9 @@ const Admin: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card font="retro">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">New Users</CardTitle>
+                <CardTitle font="retro" className="text-sm font-medium">New Users</CardTitle>
                 <UserCheck className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -262,9 +262,9 @@ const Admin: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card font="retro">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Platform Health</CardTitle>
+                <CardTitle font="retro" className="text-sm font-medium">Platform Health</CardTitle>
                 <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -277,9 +277,9 @@ const Admin: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card font="retro">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Admins</CardTitle>
+                <CardTitle font="retro" className="text-sm font-medium">Admins</CardTitle>
                 <Shield className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -290,9 +290,9 @@ const Admin: React.FC = () => {
           </div>
 
           {/* Platform Status Overview */}
-          <Card>
+          <Card font="retro">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle font="retro" className="flex items-center space-x-2">
                 <Server className="h-5 w-5" />
                 <span>Platform Status</span>
               </CardTitle>
@@ -310,7 +310,7 @@ const Admin: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <Badge className={getStatusColor(platform.status)}>
+                    <Badge font="retro" className={getStatusColor(platform.status)}>
                       {platform.status}
                     </Badge>
                   </div>
@@ -321,9 +321,9 @@ const Admin: React.FC = () => {
 
           {/* Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card font="retro">
               <CardHeader>
-                <CardTitle>Recent Users</CardTitle>
+                <CardTitle font="retro">Recent Users</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -345,9 +345,9 @@ const Admin: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card font="retro">
               <CardHeader>
-                <CardTitle>Recent Logins</CardTitle>
+                <CardTitle font="retro">Recent Logins</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
