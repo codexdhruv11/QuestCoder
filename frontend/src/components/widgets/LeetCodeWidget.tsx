@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { widgetsAPI } from '@/lib/api'
 import { LeetCodeStats } from '@/types'
 import { Code, TrendingUp, Award, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/8bit/button'
+import '@/components/ui/8bit/styles/retro.css'
 
 interface LeetCodeWidgetProps {
   handle: string
@@ -49,12 +50,12 @@ export default function LeetCodeWidget({ handle }: LeetCodeWidgetProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Code className="h-5 w-5 text-orange-500" />
-              <CardTitle className="text-lg">LeetCode</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">LeetCode</CardTitle>
             </div>
             <div className="animate-spin">
               <RefreshCw className="h-4 w-4" />
@@ -74,14 +75,14 @@ export default function LeetCodeWidget({ handle }: LeetCodeWidgetProps) {
 
   if (error || !stats) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Code className="h-5 w-5 text-orange-500" />
-              <CardTitle className="text-lg">LeetCode</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">LeetCode</CardTitle>
             </div>
-            <Button
+            <Button font="retro"
               variant="ghost"
               size="sm"
               onClick={fetchStats}
@@ -98,14 +99,14 @@ export default function LeetCodeWidget({ handle }: LeetCodeWidgetProps) {
   }
 
   return (
-    <Card>
+    <Card font="retro">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Code className="h-5 w-5 text-orange-500" />
-            <CardTitle className="text-lg">LeetCode</CardTitle>
+            <CardTitle font="retro" className="text-lg">LeetCode</CardTitle>
           </div>
-          <Button
+          <Button font="retro"
             variant="ghost"
             size="sm"
             onClick={fetchStats}
@@ -113,7 +114,7 @@ export default function LeetCodeWidget({ handle }: LeetCodeWidgetProps) {
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <CardDescription>@{stats.handle}</CardDescription>
+        <CardDescription font="retro">@{stats.handle}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Total Problems */}
