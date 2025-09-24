@@ -4,11 +4,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
 import { userAPI } from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/8bit/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Input } from '@/components/ui/8bit/input'
+import { Label } from '@/components/ui/8bit/label'
 import { User, Save, RefreshCw } from 'lucide-react'
+import '@/components/ui/8bit/styles/retro.css'
 
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be at most 20 characters'),
@@ -101,7 +102,7 @@ export default function Profile() {
       <div className="flex items-center gap-3">
         <User className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+          <h1 className="retro text-3xl font-bold tracking-tight">Profile</h1>
           <p className="text-muted-foreground">
             Manage your account information and platform handles
           </p>
@@ -110,10 +111,10 @@ export default function Profile() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Profile Form */}
-        <Card className="lg:col-span-2">
+        <Card font="retro" className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Account Information</CardTitle>
-            <CardDescription>
+            <CardTitle font="retro">Account Information</CardTitle>
+            <CardDescription font="retro">
               Update your personal information and platform handles
             </CardDescription>
           </CardHeader>
@@ -131,12 +132,12 @@ export default function Profile() {
 
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Basic Information</h3>
+                <h3 className="retro text-lg font-medium">Basic Information</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
+                    <Label font="retro" htmlFor="username">Username</Label>
+                    <Input font="retro"
                       {...register('username')}
                       id="username"
                       type="text"
@@ -148,8 +149,8 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
+                    <Label font="retro" htmlFor="email">Email</Label>
+                    <Input font="retro"
                       {...register('email')}
                       id="email"
                       type="email"
@@ -164,15 +165,15 @@ export default function Profile() {
 
               {/* Platform Handles */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Platform Handles</h3>
+                <h3 className="retro text-lg font-medium">Platform Handles</h3>
                 <p className="text-sm text-muted-foreground">
                   Connect your coding platform accounts to track your progress
                 </p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="leetcodeHandle">LeetCode Handle</Label>
-                    <Input
+                    <Label font="retro" htmlFor="leetcodeHandle">LeetCode Handle</Label>
+                    <Input font="retro"
                       {...register('leetcodeHandle')}
                       id="leetcodeHandle"
                       type="text"
@@ -184,8 +185,8 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="codeforcesHandle">Codeforces Handle</Label>
-                    <Input
+                    <Label font="retro" htmlFor="codeforcesHandle">Codeforces Handle</Label>
+                    <Input font="retro"
                       {...register('codeforcesHandle')}
                       id="codeforcesHandle"
                       type="text"
@@ -197,8 +198,8 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="githubHandle">GitHub Handle</Label>
-                    <Input
+                    <Label font="retro" htmlFor="githubHandle">GitHub Handle</Label>
+                    <Input font="retro"
                       {...register('githubHandle')}
                       id="githubHandle"
                       type="text"
@@ -210,8 +211,8 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hackerrankHandle">HackerRank Handle</Label>
-                    <Input
+                    <Label font="retro" htmlFor="hackerrankHandle">HackerRank Handle</Label>
+                    <Input font="retro"
                       {...register('hackerrankHandle')}
                       id="hackerrankHandle"
                       type="text"
@@ -223,8 +224,8 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hackerearthHandle">HackerEarth Handle</Label>
-                    <Input
+                    <Label font="retro" htmlFor="hackerearthHandle">HackerEarth Handle</Label>
+                    <Input font="retro"
                       {...register('hackerearthHandle')}
                       id="hackerearthHandle"
                       type="text"
@@ -271,10 +272,10 @@ export default function Profile() {
         </Card>
 
         {/* Account Summary */}
-        <Card>
+        <Card font="retro">
           <CardHeader>
-            <CardTitle>Account Summary</CardTitle>
-            <CardDescription>
+            <CardTitle font="retro">Account Summary</CardTitle>
+            <CardDescription font="retro">
               Your account details and activity
             </CardDescription>
           </CardHeader>
