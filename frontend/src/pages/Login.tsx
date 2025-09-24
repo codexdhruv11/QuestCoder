@@ -4,13 +4,14 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/components/ui/use-toast'
+import { Button } from '@/components/ui/8bit/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Input } from '@/components/ui/8bit/input'
+import { Label } from '@/components/ui/8bit/label'
+import { useToast } from '@/components/ui/8bit/use-toast'
 import { getErrorInfo } from '@/lib/error-handler'
 import { Code2, Eye, EyeOff, Loader2 } from 'lucide-react'
+import '@/components/ui/8bit/styles/retro.css'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -77,18 +78,18 @@ export default function Login() {
           <div className="flex justify-center">
             <Code2 className="h-12 w-12 text-primary" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold tracking-tight">
+          <h2 className="mt-6 text-3xl font-bold tracking-tight retro">
             Welcome back
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground retro">
             Sign in to your QuestCoder account
           </p>
         </div>
 
-        <Card>
+        <Card font="retro">
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>
+            <CardTitle font="retro">Sign In</CardTitle>
+            <CardDescription font="retro">
               Enter your email and password to access your account
             </CardDescription>
           </CardHeader>
@@ -101,13 +102,14 @@ export default function Login() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" font="retro">Email</Label>
                 <Input
                   {...register('email')}
                   id="email"
                   type="email"
                   placeholder="Enter your email"
                   autoComplete="email"
+                  font="retro"
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -115,7 +117,7 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" font="retro">Password</Label>
                 <div className="relative">
                   <Input
                     {...register('password')}
@@ -123,6 +125,7 @@ export default function Login() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     autoComplete="current-password"
+                    font="retro"
                   />
                   <button
                     type="button"
@@ -145,6 +148,7 @@ export default function Login() {
                 type="submit"
                 className="w-full"
                 disabled={isLoading}
+                font="retro"
               >
                 {isLoading ? (
                   <>
