@@ -1,7 +1,7 @@
-import { Badge } from '@/components/ui/badge'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/8bit/badge'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/8bit/card'
+import { Input } from '@/components/ui/8bit/input'
+import { Button } from '@/components/ui/8bit/button'
 import React, { useState, useEffect } from 'react'
 import { 
   Search, 

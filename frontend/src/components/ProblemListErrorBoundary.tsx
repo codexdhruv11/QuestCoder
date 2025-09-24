@@ -1,7 +1,8 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
+import { Card } from './ui/8bit/card';
+import { Button } from './ui/8bit/button';
+import '@/components/ui/8bit/styles/retro.css'
 
 interface Props {
   children: ReactNode;
@@ -58,11 +59,11 @@ class ProblemListErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <Card className="p-6 m-4 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
+        <Card font="retro" className="p-6 m-4 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="font-semibold text-red-900 dark:text-red-100 mb-1">
+              <h3 className="retro font-semibold text-red-900 dark:text-red-100 mb-1">
                 Problem List Rendering Error
               </h3>
               <p className="text-sm text-red-700 dark:text-red-300 mb-3">
@@ -81,6 +82,7 @@ class ProblemListErrorBoundary extends Component<Props, State> {
               )}
               <div className="mt-4 flex gap-2">
                 <Button
+                  font="retro"
                   size="sm"
                   variant="outline"
                   onClick={this.handleReset}
@@ -89,6 +91,7 @@ class ProblemListErrorBoundary extends Component<Props, State> {
                   Try Again
                 </Button>
                 <Button
+                  font="retro"
                   size="sm"
                   variant="outline"
                   onClick={() => window.location.reload()}

@@ -1,15 +1,15 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/hooks/useNotifications'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/8bit/button'
+import { Badge } from '@/components/ui/8bit/badge'
 import XpProgressBar, { CompactXpProgressBar } from '@/components/gamification/XpProgressBar'
 import { LevelBadge } from '@/components/gamification/LevelIndicator'
-import { 
-  LayoutDashboard, 
-  Target, 
-  User, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Target,
+  User,
+  LogOut,
   Menu,
   Code2,
   BarChart3,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { gamificationAPI } from '@/lib/api'
+import '@/components/ui/8bit/styles/retro.css'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -93,7 +94,7 @@ export default function Layout() {
           <div className="flex h-16 items-center px-6 border-b">
             <div className="flex items-center gap-2">
               <Code2 className="h-8 w-8 text-primary" />
-              <h1 className="text-xl font-bold">QuestCoder</h1>
+              <h1 className="retro text-xl font-bold">QuestCoder</h1>
             </div>
           </div>
           
@@ -106,7 +107,7 @@ export default function Layout() {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`retro flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -116,7 +117,7 @@ export default function Layout() {
                   <Icon className="h-4 w-4" />
                   {item.name}
                   {item.name === 'Admin' && (
-                    <Badge variant="secondary" className="ml-auto text-xs">
+                    <Badge font="retro" variant="secondary" className="ml-auto text-xs">
                       Admin
                     </Badge>
                   )}
@@ -137,7 +138,7 @@ export default function Layout() {
                 />
                 <div className="flex items-center justify-between">
                   <LevelBadge level={userGamification.currentLevel} />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="retro text-xs text-muted-foreground">
                     {userGamification.totalXp} XP
                   </span>
                 </div>
@@ -149,11 +150,12 @@ export default function Layout() {
                 <User className="h-4 w-4 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.username}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <p className="retro text-sm font-medium truncate">{user?.username}</p>
+                <p className="retro text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
             </div>
             <Button
+              font="retro"
               variant="ghost"
               size="sm"
               onClick={handleLogout}
@@ -170,6 +172,7 @@ export default function Layout() {
           {/* Top bar */}
           <header className="flex-shrink-0 h-16 bg-card border-b flex items-center justify-between px-6">
             <Button
+              font="retro"
               variant="ghost"
               size="sm"
               onClick={() => setSidebarOpen(true)}
@@ -180,16 +183,16 @@ export default function Layout() {
             
             <div className="flex items-center gap-2 md:hidden">
               <Code2 className="h-6 w-6 text-primary" />
-              <h1 className="text-lg font-bold">QuestCoder</h1>
+              <h1 className="retro text-lg font-bold">QuestCoder</h1>
             </div>
             
             {/* Right side - Notifications and Gamification */}
             <div className="flex items-center gap-4 ml-auto">
               {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative">
+              <Button font="retro" variant="ghost" size="sm" className="relative">
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                  <Badge font="retro" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </Badge>
                 )}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useSocket } from '@/contexts/SocketContext'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Button } from '@/components/ui/8bit/button'
+import { Badge } from '@/components/ui/8bit/badge'
 import { 
   Activity,
   Server,
