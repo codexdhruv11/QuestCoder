@@ -1,9 +1,10 @@
+import '@/components/ui/8bit/styles/retro.css'
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { widgetsAPI } from '@/lib/api'
 import { GitHubStats } from '@/types'
 import { Github, GitFork, Users, TrendingUp, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/8bit/button'
 
 interface GitHubWidgetProps {
   handle: string
@@ -54,12 +55,12 @@ export default function GitHubWidget({ handle }: GitHubWidgetProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Github className="h-5 w-5" />
-              <CardTitle className="text-lg">GitHub</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">GitHub</CardTitle>
             </div>
             <div className="animate-spin">
               <RefreshCw className="h-4 w-4" />
@@ -79,14 +80,14 @@ export default function GitHubWidget({ handle }: GitHubWidgetProps) {
 
   if (error || !stats) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Github className="h-5 w-5" />
-              <CardTitle className="text-lg">GitHub</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">GitHub</CardTitle>
             </div>
-            <Button variant="ghost" size="sm" onClick={fetchStats}>
+            <Button font="retro" variant="ghost" size="sm" onClick={fetchStats}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -103,18 +104,18 @@ export default function GitHubWidget({ handle }: GitHubWidgetProps) {
     .slice(0, 3)
 
   return (
-    <Card>
+    <Card font="retro">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Github className="h-5 w-5" />
-            <CardTitle className="text-lg">GitHub</CardTitle>
+            <CardTitle font="retro" className="retro text-lg">GitHub</CardTitle>
           </div>
-          <Button variant="ghost" size="sm" onClick={fetchStats}>
+          <Button font="retro" variant="ghost" size="sm" onClick={fetchStats}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <CardDescription>@{stats.handle}</CardDescription>
+        <CardDescription font="retro">@{stats.handle}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Stats Grid */}
@@ -122,28 +123,28 @@ export default function GitHubWidget({ handle }: GitHubWidgetProps) {
           <div className="flex items-center gap-2">
             <GitFork className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="text-sm font-medium">{stats.publicRepos}</div>
+              <div className="retro text-sm font-medium">{stats.publicRepos}</div>
               <div className="text-xs text-muted-foreground">Repositories</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="text-sm font-medium">{stats.followers}</div>
+              <div className="retro text-sm font-medium">{stats.followers}</div>
               <div className="text-xs text-muted-foreground">Followers</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="text-sm font-medium">{stats.contributions}</div>
+              <div className="retro text-sm font-medium">{stats.contributions}</div>
               <div className="text-xs text-muted-foreground">Contributions</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="text-sm font-medium">{stats.streak} days</div>
+              <div className="retro text-sm font-medium">{stats.streak} days</div>
               <div className="text-xs text-muted-foreground">Streak</div>
             </div>
           </div>
@@ -181,7 +182,7 @@ export default function GitHubWidget({ handle }: GitHubWidgetProps) {
                 <div className="flex items-center gap-1">
                   <span className="font-medium capitalize">{activity.type.replace('_', ' ')}</span>
                   <span className="text-muted-foreground">in</span>
-                  <span className="font-medium">{activity.repo}</span>
+                  <span className="retro font-medium">{activity.repo}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {activity.description}
