@@ -1,9 +1,10 @@
+import '@/components/ui/8bit/styles/retro.css'
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { widgetsAPI } from '@/lib/api'
 import { StreakData, DailyActivity } from '@/types'
 import { Flame, Calendar, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/8bit/button'
 
 export default function StreakTracker() {
   const [streakData, setStreakData] = useState<StreakData | null>(null)
@@ -122,12 +123,12 @@ export default function StreakTracker() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="h-5 w-5 text-orange-500" />
-              <CardTitle className="text-lg">Streak Tracker</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">Streak Tracker</CardTitle>
             </div>
             <div className="animate-spin">
               <RefreshCw className="h-4 w-4" />
@@ -146,14 +147,14 @@ export default function StreakTracker() {
 
   if (error || !streakData) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="h-5 w-5 text-orange-500" />
-              <CardTitle className="text-lg">Streak Tracker</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">Streak Tracker</CardTitle>
             </div>
-            <Button variant="ghost" size="sm" onClick={fetchStreakData}>
+            <Button font="retro" variant="ghost" size="sm" onClick={fetchStreakData}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -166,18 +167,18 @@ export default function StreakTracker() {
   }
 
   return (
-    <Card>
+    <Card font="retro">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-orange-500" />
-            <CardTitle className="text-lg">Streak Tracker</CardTitle>
+            <CardTitle font="retro" className="retro text-lg">Streak Tracker</CardTitle>
           </div>
-          <Button variant="ghost" size="sm" onClick={fetchStreakData}>
+          <Button font="retro" variant="ghost" size="sm" onClick={fetchStreakData}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <CardDescription>
+        <CardDescription font="retro">
           Your daily coding activity across all platforms
         </CardDescription>
       </CardHeader>
@@ -202,7 +203,7 @@ export default function StreakTracker() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <h4 className="text-sm font-medium">Last 30 Days</h4>
+            <h4 className="retro text-sm font-medium">Last 30 Days</h4>
           </div>
           {renderCalendar()}
           <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
