@@ -6,7 +6,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Layout from '@/components/Layout'
 import ErrorBoundary from '@/components/ErrorBoundary'
-import { Loading } from '@/components/ui/loading'
+import { Loading } from '@/components/ui/8bit/loading'
 import Login from '@/pages/Login'
 import Signup from '@/pages/Signup'
 
