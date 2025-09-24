@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Skeleton } from '@/components/ui/skeleton'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useToast } from '@/components/ui/use-toast'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Badge } from '@/components/ui/8bit/badge'
+import { Button } from '@/components/ui/8bit/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/8bit/dialog'
+import { Input } from '@/components/ui/8bit/input'
+import { Textarea } from '@/components/ui/8bit/textarea'
+import { Label } from '@/components/ui/8bit/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
+import { Avatar, AvatarFallback } from '@/components/ui/8bit/avatar'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/8bit/tabs'
+import { Skeleton } from '@/components/ui/8bit/skeleton'
+import { ScrollArea } from '@/components/ui/8bit/scroll-area'
+import { useToast } from '@/components/ui/8bit/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LevelBadge } from '@/components/gamification/LevelIndicator'
 import { communityAPI } from '@/lib/api'
@@ -155,11 +155,11 @@ const StudyGroupCard: React.FC<{
       whileHover={{ y: -2 }}
       className="h-full"
     >
-      <Card className="h-full">
+      <Card font="retro" className="h-full">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle className="text-lg font-semibold line-clamp-1">
+              <CardTitle font="retro" className="text-lg font-semibold line-clamp-1">
                 {group.name}
               </CardTitle>
               <div className="flex items-center space-x-2 mt-1">
@@ -252,7 +252,7 @@ const StudyGroupCard: React.FC<{
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-sm flex-1">Member</span>
-                      <Badge className={`text-xs ${roleColors[member.role]}`}>
+                      <Badge font="retro" className={`text-xs ${roleColors[member.role]}`}>
                         {member.role}
                       </Badge>
                     </div>
@@ -332,8 +332,8 @@ const CreateGroupDialog: React.FC<{
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Group Name</Label>
-            <Input
+            <Label font="retro" htmlFor="name">Group Name</Label>
+            <Input font="retro"
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -343,7 +343,7 @@ const CreateGroupDialog: React.FC<{
           </div>
 
           <div>
-            <Label htmlFor="description">Description</Label>
+            <Label font="retro" htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -354,12 +354,12 @@ const CreateGroupDialog: React.FC<{
           </div>
 
           <div>
-            <Label htmlFor="privacy">Privacy</Label>
+            <Label font="retro" htmlFor="privacy">Privacy</Label>
             <Select 
               value={formData.privacy} 
               onValueChange={(value) => setFormData({ ...formData, privacy: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger font="retro">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -370,8 +370,8 @@ const CreateGroupDialog: React.FC<{
           </div>
 
           <div>
-            <Label htmlFor="targetPatterns">Target Patterns (comma separated)</Label>
-            <Input
+            <Label font="retro" htmlFor="targetPatterns">Target Patterns (comma separated)</Label>
+            <Input font="retro"
               id="targetPatterns"
               value={formData.targetPatterns}
               onChange={(e) => setFormData({ ...formData, targetPatterns: e.target.value })}
@@ -380,10 +380,10 @@ const CreateGroupDialog: React.FC<{
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button font="retro" type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Create Group</Button>
+            <Button font="retro" type="submit">Create Group</Button>
           </div>
         </form>
       </DialogContent>
@@ -715,9 +715,9 @@ const StudyGroups: React.FC = () => {
     const activities = groupActivities.get(groupId) || []
     
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+          <CardTitle font="retro" className="flex items-center space-x-2">
             <Activity className="h-5 w-5" />
             <span>Live Activity</span>
           </CardTitle>
@@ -769,9 +769,9 @@ const StudyGroups: React.FC = () => {
     if (!stats || !group) return null
     
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+          <CardTitle font="retro" className="flex items-center space-x-2">
             <TrendingUp className="h-5 w-5" />
             <span>Group Performance</span>
           </CardTitle>
@@ -817,9 +817,9 @@ const StudyGroups: React.FC = () => {
     if (!group) return null
     
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+          <CardTitle font="retro" className="flex items-center space-x-2">
             <Users className="h-5 w-5" />
             <span>Members ({group.members.length})</span>
           </CardTitle>
@@ -910,7 +910,7 @@ const StudyGroups: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Study Groups</h1>
+          <h1 className="retro text-3xl font-bold">Study Groups</h1>
           <p className="text-muted-foreground">
             Join or create study groups to learn together
           </p>
@@ -924,12 +924,12 @@ const StudyGroups: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card font="retro">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="relative flex-1 min-w-64">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <Input font="retro"
                 placeholder="Search study groups..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -952,7 +952,7 @@ const StudyGroups: React.FC = () => {
       </Card>
 
       {/* Study Groups Tabs */}
-      <Tabs defaultValue="my-groups" className="space-y-6">
+      <Tabs font="retro" defaultValue="my-groups" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="my-groups">
             My Groups ({data.myGroups.length})
@@ -994,7 +994,7 @@ const StudyGroups: React.FC = () => {
                     <MemberPresenceList groupId={selectedGroupId} />
                   </>
                 ) : (
-                  <Card>
+                  <Card font="retro">
                     <CardContent className="p-6 text-center">
                       <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">
@@ -1008,7 +1008,7 @@ const StudyGroups: React.FC = () => {
           ) : (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No study groups yet</h3>
+              <h3 className="retro text-lg font-semibold mb-2">No study groups yet</h3>
               <p className="text-muted-foreground mb-4">
                 Create or join a study group to start learning together
               </p>
@@ -1035,7 +1035,7 @@ const StudyGroups: React.FC = () => {
           {filteredGroups(data.availableGroups).length === 0 && (
             <div className="text-center py-12">
               <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No groups found</h3>
+              <h3 className="retro text-lg font-semibold mb-2">No groups found</h3>
               <p className="text-muted-foreground">
                 Try adjusting your search or create a new group
               </p>
@@ -1055,7 +1055,7 @@ const StudyGroups: React.FC = () => {
                           <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold">{invitation.group.name}</h3>
+                          <h3 className="retro font-semibold">{invitation.group.name}</h3>
                           <p className="text-sm text-muted-foreground">
                             Invited by {invitation.invitedBy} • {new Date(invitation.invitedAt).toLocaleDateString()}
                           </p>
@@ -1080,7 +1080,7 @@ const StudyGroups: React.FC = () => {
           ) : (
             <div className="text-center py-12">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No invitations</h3>
+              <h3 className="retro text-lg font-semibold mb-2">No invitations</h3>
               <p className="text-muted-foreground">
                 You'll see group invitations here when you receive them
               </p>
