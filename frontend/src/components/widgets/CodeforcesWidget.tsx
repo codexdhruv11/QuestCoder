@@ -1,9 +1,10 @@
+import '@/components/ui/8bit/styles/retro.css'
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { widgetsAPI } from '@/lib/api'
 import { CodeforcesStats } from '@/types'
 import { Trophy, TrendingUp, Calendar, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/8bit/button'
 
 interface CodeforcesWidgetProps {
   handle: string
@@ -56,12 +57,12 @@ export default function CodeforcesWidget({ handle }: CodeforcesWidgetProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-lg">Codeforces</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">Codeforces</CardTitle>
             </div>
             <div className="animate-spin">
               <RefreshCw className="h-4 w-4" />
@@ -81,14 +82,14 @@ export default function CodeforcesWidget({ handle }: CodeforcesWidgetProps) {
 
   if (error || !stats) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-lg">Codeforces</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">Codeforces</CardTitle>
             </div>
-            <Button variant="ghost" size="sm" onClick={fetchStats}>
+            <Button font="retro" variant="ghost" size="sm" onClick={fetchStats}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -101,24 +102,24 @@ export default function CodeforcesWidget({ handle }: CodeforcesWidgetProps) {
   }
 
   return (
-    <Card>
+    <Card font="retro">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-blue-500" />
-            <CardTitle className="text-lg">Codeforces</CardTitle>
+            <CardTitle font="retro" className="retro text-lg">Codeforces</CardTitle>
           </div>
-          <Button variant="ghost" size="sm" onClick={fetchStats}>
+          <Button font="retro" variant="ghost" size="sm" onClick={fetchStats}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <CardDescription>@{stats.handle}</CardDescription>
+        <CardDescription font="retro">@{stats.handle}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Rating */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Current Rating</span>
+            <span className="retro text-sm font-medium">Current Rating</span>
             <span className="text-2xl font-bold">{stats.rating}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
@@ -136,14 +137,14 @@ export default function CodeforcesWidget({ handle }: CodeforcesWidgetProps) {
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="text-sm font-medium">{stats.contestsParticipated}</div>
+              <div className="retro text-sm font-medium">{stats.contestsParticipated}</div>
               <div className="text-xs text-muted-foreground">Contests</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="text-sm font-medium">{stats.problemsSolved}</div>
+              <div className="retro text-sm font-medium">{stats.problemsSolved}</div>
               <div className="text-xs text-muted-foreground">Problems</div>
             </div>
           </div>
@@ -156,7 +157,7 @@ export default function CodeforcesWidget({ handle }: CodeforcesWidgetProps) {
             {stats.recentContests.slice(0, 2).map((contest) => (
               <div key={contest.id} className="flex items-center justify-between text-sm border-l-2 pl-2 border-muted">
                 <div>
-                  <p className="font-medium">{contest.name}</p>
+                  <p className="retro font-medium">{contest.name}</p>
                   <p className="text-xs text-muted-foreground">Rank #{contest.rank}</p>
                 </div>
                 <div className={`text-xs font-medium ${
