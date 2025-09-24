@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { BarChart } from '@/components/ui/chart';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card';
+import { Button } from '@/components/ui/8bit/button';
+import { Badge } from '@/components/ui/8bit/badge';
+import { Progress } from '@/components/ui/8bit/progress';
+import { BarChart } from '@/components/ui/8bit/chart';
 import { 
   TrendingUp, 
   TrendingDown, 

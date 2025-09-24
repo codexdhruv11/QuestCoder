@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { Card, CardContent } from '@/components/ui/8bit/card'
+import { Badge } from '@/components/ui/8bit/badge'
+import { Progress } from '@/components/ui/8bit/progress'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Star, Crown, Sparkles, Trophy, Zap } from 'lucide-react'
+import '@/components/ui/8bit/styles/retro.css'
 
 interface LevelIndicatorProps {
   currentLevel: number
@@ -154,8 +155,8 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
         </div>
         <div className="flex-1 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Level {currentLevel}</span>
-            <span className="text-xs text-muted-foreground">
+            <span className="retro text-sm font-medium">Level {currentLevel}</span>
+            <span className="retro text-xs text-muted-foreground">
               {totalXPForCurrentLevel - xpToNextLevel} / {totalXPForCurrentLevel} XP
             </span>
           </div>
@@ -184,16 +185,16 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">Level {currentLevel}</h3>
-                    <Badge variant="secondary" className="text-xs">
+                    <h3 className="retro text-lg font-semibold">Level {currentLevel}</h3>
+                    <Badge font="retro" variant="secondary" className="text-xs">
                       {theme.name}
                     </Badge>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">
+                    <p className="retro text-sm font-medium">
                       {totalXPForCurrentLevel - xpToNextLevel} / {totalXPForCurrentLevel} XP
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="retro text-xs text-muted-foreground">
                       {xpToNextLevel} XP to next level
                     </p>
                   </div>
@@ -201,7 +202,7 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
 
                 <div className="space-y-2">
                   <Progress value={progressPercentage} className="h-2" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between retro text-xs text-muted-foreground">
                     <span>Current Progress</span>
                     <span>{Math.round(progressPercentage)}%</span>
                   </div>
@@ -237,19 +238,19 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
         <div className="flex-1 space-y-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="font-semibold">Level {currentLevel}</span>
-              <Badge variant="outline" className="text-xs">
+              <span className="retro font-semibold">Level {currentLevel}</span>
+              <Badge font="retro" variant="outline" className="text-xs">
                 {theme.name}
               </Badge>
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="retro text-sm text-muted-foreground">
               {xpToNextLevel} XP to go
             </span>
           </div>
           
           <div className="space-y-1">
             <Progress value={progressPercentage} className="h-2" />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between retro text-xs text-muted-foreground">
               <span>{totalXPForCurrentLevel - xpToNextLevel} XP</span>
               <span>{totalXPForCurrentLevel} XP</span>
             </div>

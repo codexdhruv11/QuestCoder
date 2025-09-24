@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/8bit/card';
+import { Button } from '@/components/ui/8bit/button';
+import { Badge } from '@/components/ui/8bit/badge';
+import { Progress } from '@/components/ui/8bit/progress';
 import { Challenge } from '@/types';
 import { Calendar, Users, Target, Trophy, Clock } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isFuture } from 'date-fns';

@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Badge } from '@/components/ui/8bit/badge'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Lock, Trophy, Star, Award, Crown, Gem } from 'lucide-react'
+import '@/components/ui/8bit/styles/retro.css'
 
 interface BadgeItem {
   id: string
@@ -86,7 +87,7 @@ const BadgeCard: React.FC<{
       className="cursor-pointer"
       onClick={() => onBadgeClick?.(badge)}
     >
-      <Card className={cn(
+      <Card font="retro" className={cn(
         "relative overflow-hidden transition-all duration-300",
         badge.isUnlocked ? config.borderColor : "border-muted",
         badge.isUnlocked ? "shadow-lg" : "opacity-50"
@@ -142,10 +143,11 @@ const BadgeCard: React.FC<{
         </CardHeader>
 
         <CardContent className="text-center space-y-2">
-          <CardTitle className="text-sm font-medium">{badge.name}</CardTitle>
+          <CardTitle font="retro" className="retro text-sm font-medium">{badge.name}</CardTitle>
           
-          <Badge 
-            variant="secondary" 
+          <Badge
+            font="retro"
+            variant="secondary"
             className={cn(
               "text-xs font-medium",
               badge.isUnlocked ? config.textColor : "text-muted-foreground"

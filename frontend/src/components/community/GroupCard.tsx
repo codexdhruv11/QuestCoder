@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/8bit/card';
+import { Button } from '@/components/ui/8bit/button';
+import { Badge } from '@/components/ui/8bit/badge';
 import { StudyGroup } from '@/types';
 import { Users, Target, Crown, Shield, User } from 'lucide-react';
 
