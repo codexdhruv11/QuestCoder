@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DatePicker } from '@/components/ui/date-picker'
-import { LineChart, BarChart, PieChart } from '@/components/ui/chart'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useToast } from '@/components/ui/use-toast'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Badge } from '@/components/ui/8bit/badge'
+import { Button } from '@/components/ui/8bit/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/8bit/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
+import { DatePicker } from '@/components/ui/8bit/date-picker'
+import { LineChart, BarChart, PieChart } from '@/components/ui/8bit/chart'
+import { Skeleton } from '@/components/ui/8bit/skeleton'
+import { useToast } from '@/components/ui/8bit/use-toast'
 import { motion } from 'framer-motion'
 import { 
   TrendingUp, 
@@ -338,7 +338,7 @@ const Analytics: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+          <h1 className="retro text-3xl font-bold">Analytics Dashboard</h1>
           <p className="text-muted-foreground">
             Track your progress and performance insights
           </p>
@@ -365,7 +365,7 @@ const Analytics: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card font="retro">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center space-x-2">
@@ -420,7 +420,7 @@ const Analytics: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
+          <Card font="retro">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
@@ -445,7 +445,7 @@ const Analytics: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card>
+          <Card font="retro">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
@@ -470,7 +470,7 @@ const Analytics: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
+          <Card font="retro">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
@@ -493,7 +493,7 @@ const Analytics: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Card>
+          <Card font="retro">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
@@ -513,7 +513,7 @@ const Analytics: React.FC = () => {
       </div>
 
       {/* Charts and Analytics */}
-      <Tabs defaultValue="progress" className="space-y-6">
+      <Tabs font="retro" defaultValue="progress" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="progress">Progress Tracking</TabsTrigger>
           <TabsTrigger value="patterns">Pattern Analysis</TabsTrigger>
@@ -522,9 +522,9 @@ const Analytics: React.FC = () => {
         </TabsList>
 
         <TabsContent value="progress" className="space-y-6">
-          <Card>
+          <Card font="retro">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle font="retro" className="flex items-center space-x-2">
                 <TrendingUp className="h-5 w-5" />
                 <span>Progress Over Time</span>
               </CardTitle>
@@ -543,9 +543,9 @@ const Analytics: React.FC = () => {
           </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card font="retro">
               <CardHeader>
-                <CardTitle>Daily Activity Heatmap</CardTitle>
+                <CardTitle font="retro">Daily Activity Heatmap</CardTitle>
               </CardHeader>
               <CardContent>
                 <BarChart
@@ -559,9 +559,9 @@ const Analytics: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card font="retro">
               <CardHeader>
-                <CardTitle>Performance Trends</CardTitle>
+                <CardTitle font="retro">Performance Trends</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {data.performanceMetrics.map((metric) => (
@@ -599,10 +599,10 @@ const Analytics: React.FC = () => {
               subtitle="Your progress across different algorithmic patterns"
             />
           ) : (
-            <Card>
+            <Card font="retro">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Pattern Data Available</h3>
+                <h3 className="retro text-lg font-semibold mb-2">No Pattern Data Available</h3>
                 <p className="text-muted-foreground text-center max-w-md">
                   Start solving problems to see your pattern mastery analysis. Your progress will be visualized here once you have sufficient data.
                 </p>
@@ -613,9 +613,9 @@ const Analytics: React.FC = () => {
 
         <TabsContent value="performance" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card font="retro">
               <CardHeader>
-                <CardTitle>Time Distribution</CardTitle>
+                <CardTitle font="retro">Time Distribution</CardTitle>
               </CardHeader>
               <CardContent>
                 <PieChart
@@ -630,9 +630,9 @@ const Analytics: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card font="retro">
               <CardHeader>
-                <CardTitle>Completion Rates by Pattern</CardTitle>
+                <CardTitle font="retro">Completion Rates by Pattern</CardTitle>
               </CardHeader>
               <CardContent>
                 <BarChart
@@ -656,10 +656,10 @@ const Analytics: React.FC = () => {
               subtitle="Machine learning predictions for your coding journey"
             />
           ) : (
-            <Card>
+            <Card font="retro">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Gathering Insights</h3>
+                <h3 className="retro text-lg font-semibold mb-2">Gathering Insights</h3>
                 <p className="text-muted-foreground text-center max-w-md">
                   Continue solving problems to unlock AI-powered predictive insights about your learning journey and personalized recommendations.
                 </p>
