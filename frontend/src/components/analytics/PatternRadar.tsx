@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { RadarChart } from '@/components/ui/chart';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { RadarChart } from '@/components/ui/8bit/chart';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card';
+import { Button } from '@/components/ui/8bit/button';
+import { Badge } from '@/components/ui/8bit/badge';
 
 export interface PatternMasteryData {
   pattern: string;
