@@ -309,7 +309,7 @@ const Patterns: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
           <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Failed to load patterns</h3>
+          <h3 className="retro text-lg font-semibold mb-2">Failed to load patterns</h3>
           <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={fetchPatterns} variant="outline">
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -334,10 +334,10 @@ const Patterns: React.FC = () => {
               <div className="flex items-center gap-3">
                 <Target className="h-6 w-6 text-primary" />
                 <div>
-                  <CardTitle className="text-xl font-semibold">
+                  <CardTitle className="retro text-xl font-semibold">
                     Coding Patterns
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="retro">
                     Master algorithmic patterns through structured practice
                   </CardDescription>
                 </div>
@@ -452,7 +452,7 @@ const Patterns: React.FC = () => {
                   className="text-center py-12"
                 >
                   <Target className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
+                  <h3 className="retro text-lg font-semibold mb-2">
                     No problems found
                   </h3>
                   <p className="text-muted-foreground mb-4">
