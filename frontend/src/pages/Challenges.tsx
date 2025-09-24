@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
-import { useToast } from '@/components/ui/use-toast';
-import { LoadingCard } from '@/components/ui/loading';
+import { Card, CardContent } from '@/components/ui/8bit/card';
+import { Button } from '@/components/ui/8bit/button';
+import { Input } from '@/components/ui/8bit/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/8bit/dialog';
+import { Label } from '@/components/ui/8bit/label';
+import { Textarea } from '@/components/ui/8bit/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select';
+import { DatePicker } from '@/components/ui/8bit/date-picker';
+import { useToast } from '@/components/ui/8bit/use-toast';
+import { LoadingCard } from '@/components/ui/8bit/loading';
 import { ChallengeCard } from '@/components/community/ChallengeCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocket } from '@/contexts/SocketContext';
@@ -324,7 +324,7 @@ export default function Challenges() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Challenges</h1>
+          <h1 className="retro text-3xl font-bold">Challenges</h1>
           <p className="text-muted-foreground">
             Join coding challenges to test your skills and compete with others
           </p>
@@ -337,7 +337,7 @@ export default function Challenges() {
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <Card font="retro">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
@@ -349,7 +349,7 @@ export default function Challenges() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card font="retro">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Zap className="h-5 w-5 text-green-500" />
@@ -361,7 +361,7 @@ export default function Challenges() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card font="retro">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Users className="h-5 w-5 text-blue-500" />
@@ -373,7 +373,7 @@ export default function Challenges() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card font="retro">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Target className="h-5 w-5 text-purple-500" />
@@ -391,7 +391,7 @@ export default function Challenges() {
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
+            <Input font="retro"
               placeholder="Search challenges..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -421,10 +421,10 @@ export default function Challenges() {
 
       {/* Challenges Grid */}
       {filteredChallenges.length === 0 ? (
-        <Card>
+        <Card font="retro">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No challenges found</h3>
+            <h3 className="retro text-lg font-semibold mb-2">No challenges found</h3>
             <p className="text-muted-foreground text-center max-w-md">
               {filter === 'all' 
                 ? "There are no challenges available at the moment. Be the first to create one!"
@@ -432,7 +432,7 @@ export default function Challenges() {
               }
             </p>
             {filter === 'all' && (
-              <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
+              <Button font="retro" className="mt-4" onClick={() => setShowCreateModal(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Challenge
               </Button>
@@ -470,8 +470,8 @@ export default function Challenges() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="title">Challenge Title *</Label>
-              <Input
+              <Label font="retro" htmlFor="title">Challenge Title *</Label>
+              <Input font="retro"
                 id="title"
                 value={challengeForm.title}
                 onChange={(e) => setChallengeForm(prev => ({ ...prev, title: e.target.value }))}
@@ -481,7 +481,7 @@ export default function Challenges() {
             </div>
 
             <div>
-              <Label htmlFor="description">Description *</Label>
+              <Label font="retro" htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
                 value={challengeForm.description}
@@ -493,8 +493,8 @@ export default function Challenges() {
             </div>
 
             <div>
-              <Label htmlFor="targetPatterns">Target Patterns (comma-separated)</Label>
-              <Input
+              <Label font="retro" htmlFor="targetPatterns">Target Patterns (comma-separated)</Label>
+              <Input font="retro"
                 id="targetPatterns"
                 value={challengeForm.targetPatterns}
                 onChange={(e) => setChallengeForm(prev => ({ ...prev, targetPatterns: e.target.value }))}
@@ -504,12 +504,12 @@ export default function Challenges() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="difficultyFilter">Difficulty Filter</Label>
+                <Label font="retro" htmlFor="difficultyFilter">Difficulty Filter</Label>
                 <Select 
                   value={challengeForm.difficultyFilter} 
                   onValueChange={(value) => setChallengeForm(prev => ({ ...prev, difficultyFilter: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger font="retro">
                     <SelectValue placeholder="Select difficulty" />
                   </SelectTrigger>
                   <SelectContent>
@@ -522,8 +522,8 @@ export default function Challenges() {
               </div>
 
               <div>
-                <Label htmlFor="maxParticipants">Max Participants</Label>
-                <Input
+                <Label font="retro" htmlFor="maxParticipants">Max Participants</Label>
+                <Input font="retro"
                   id="maxParticipants"
                   type="number"
                   value={challengeForm.maxParticipants}
@@ -536,7 +536,7 @@ export default function Challenges() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label font="retro" htmlFor="startDate">Start Date</Label>
                 <DatePicker
                   date={challengeForm.startDate}
                   onDateChange={(date: Date | undefined) => date && setChallengeForm(prev => ({ ...prev, startDate: date }))}
@@ -544,7 +544,7 @@ export default function Challenges() {
               </div>
 
               <div>
-                <Label htmlFor="endDate">End Date</Label>
+                <Label font="retro" htmlFor="endDate">End Date</Label>
                 <DatePicker
                   date={challengeForm.endDate}
                   onDateChange={(date: Date | undefined) => date && setChallengeForm(prev => ({ ...prev, endDate: date }))}
@@ -553,12 +553,12 @@ export default function Challenges() {
             </div>
 
             <div>
-              <Label htmlFor="privacy">Privacy</Label>
+              <Label font="retro" htmlFor="privacy">Privacy</Label>
               <Select 
                 value={challengeForm.isPublic ? 'public' : 'private'} 
                 onValueChange={(value) => setChallengeForm(prev => ({ ...prev, isPublic: value === 'public' }))}
               >
-                <SelectTrigger>
+                <SelectTrigger font="retro">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
