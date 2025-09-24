@@ -1,7 +1,8 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Button } from '@/components/ui/8bit/button'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import '@/components/ui/8bit/styles/retro.css'
 
 interface Props {
   children: ReactNode
@@ -49,13 +50,13 @@ class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
-          <Card className="w-full max-w-md">
+          <Card font="retro" className="w-full max-w-md">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <AlertTriangle className="h-12 w-12 text-destructive" />
               </div>
-              <CardTitle className="text-xl">Something went wrong</CardTitle>
-              <CardDescription>
+              <CardTitle font="retro" className="retro text-xl">Something went wrong</CardTitle>
+              <CardDescription font="retro">
                 We encountered an unexpected error. This has been logged and we'll look into it.
               </CardDescription>
             </CardHeader>
@@ -76,17 +77,17 @@ class ErrorBoundary extends Component<Props, State> {
               )}
 
               <div className="flex flex-col gap-2">
-                <Button onClick={this.handleRetry} className="w-full">
+                <Button font="retro" onClick={this.handleRetry} className="w-full">
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Try Again
                 </Button>
                 
-                <Button variant="outline" onClick={this.handleReload} className="w-full">
+                <Button font="retro" variant="outline" onClick={this.handleReload} className="w-full">
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Reload Page
                 </Button>
                 
-                <Button variant="outline" onClick={this.handleGoHome} className="w-full">
+                <Button font="retro" variant="outline" onClick={this.handleGoHome} className="w-full">
                   <Home className="h-4 w-4 mr-2" />
                   Go to Dashboard
                 </Button>
