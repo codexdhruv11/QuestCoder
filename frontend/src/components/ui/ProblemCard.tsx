@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckSquare, Square, ExternalLink, Play } from 'lucide-react';
-import { Button } from './button';
-import { Badge } from './badge';
+import { Button } from './8bit/button';
+import { Badge } from './8bit/badge';
 import { Problem } from '../../types';
 import { getPlatformColor, getDifficultyColor } from '../../lib/utils';
+import '@/components/ui/8bit/styles/retro.css'
 
 interface ProblemCardProps {
   problem: Problem;
@@ -61,10 +62,10 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
           </button>
           
           <div className="flex-1 min-w-0">
-            <h4 
-              className={`font-medium truncate ${
-                problem.solved 
-                  ? 'text-muted-foreground line-through' 
+            <h4
+              className={`retro font-medium truncate ${
+                problem.solved
+                  ? 'text-muted-foreground line-through'
                   : 'text-foreground'
               }`}
               title={problem.problemName}
@@ -74,14 +75,14 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
             
             {showMetadata && (
               <div className="hidden sm:flex items-center gap-2 mt-1 flex-wrap">
-                <Badge 
+                <Badge font="retro" 
                   variant="outline" 
                   className={`text-xs ${getDifficultyColor(problem.difficulty)}`}
                 >
                   {problem.difficulty}
                 </Badge>
                 
-                <Badge 
+                <Badge font="retro" 
                   variant="outline" 
                   className={`text-xs ${getPlatformColor(problem.platform)}`}
                 >
@@ -89,7 +90,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
                 </Badge>
                 
                 {showPatternInfo && problem.patternName && (
-                  <Badge 
+                  <Badge font="retro" 
                     variant="secondary" 
                     className="text-xs"
                   >
@@ -98,7 +99,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
                 )}
                 
                 {showPatternInfo && problem.subPatternName && (
-                  <Badge 
+                  <Badge font="retro" 
                     variant="secondary" 
                     className="text-xs opacity-80"
                   >
@@ -113,7 +114,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
           {problem.problemUrl && (
-            <Button
+            <Button font="retro"
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
@@ -125,7 +126,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
           )}
           
           {problem.videoSolutionUrl && (
-            <Button
+            <Button font="retro"
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
@@ -148,14 +149,14 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
       <div className="sm:hidden mt-3 flex flex-col gap-2">
         {showMetadata && (
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge 
+            <Badge font="retro" 
               variant="outline" 
               className={`text-xs ${getDifficultyColor(problem.difficulty)}`}
             >
               {problem.difficulty}
             </Badge>
             
-            <Badge 
+            <Badge font="retro" 
               variant="outline" 
               className={`text-xs ${getPlatformColor(problem.platform)}`}
             >
@@ -163,7 +164,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
             </Badge>
             
             {showPatternInfo && problem.patternName && (
-              <Badge 
+              <Badge font="retro" 
                 variant="secondary" 
                 className="text-xs"
               >
@@ -172,7 +173,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
             )}
             
             {showPatternInfo && problem.subPatternName && (
-              <Badge 
+              <Badge font="retro" 
                 variant="secondary" 
                 className="text-xs opacity-80"
               >
@@ -184,7 +185,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
         
         <div className="flex items-center gap-2">
           {problem.problemUrl && (
-            <Button
+            <Button font="retro"
               variant="outline"
               size="sm"
               className="flex-1"
@@ -196,7 +197,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
           )}
           
           {problem.videoSolutionUrl && (
-            <Button
+            <Button font="retro"
               variant="outline"
               size="sm"
               className="flex-1"

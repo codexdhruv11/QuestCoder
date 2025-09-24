@@ -1,7 +1,8 @@
 import * as React from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/8bit/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import '@/components/ui/8bit/styles/retro.css'
 
 export interface PaginationControlsProps {
   currentPage: number
@@ -54,7 +55,7 @@ const PaginationControls = React.forwardRef<HTMLDivElement, PaginationControlsPr
       const endItem = Math.min(currentPage * itemsPerPage, totalItems)
       
       return (
-        <div className="text-sm text-gray-700">
+        <div className="retro text-sm text-gray-700">
           Showing {startItem} to {endItem} of {totalItems} results
         </div>
       )
@@ -74,6 +75,7 @@ const PaginationControls = React.forwardRef<HTMLDivElement, PaginationControlsPr
         {/* Pagination controls (center/right) */}
         <div className="flex items-center space-x-2">
           <Button
+            font="retro"
             variant="outline"
             size="sm"
             onClick={handlePreviousPage}
@@ -84,11 +86,12 @@ const PaginationControls = React.forwardRef<HTMLDivElement, PaginationControlsPr
             <span>Previous</span>
           </Button>
           
-          <span className="text-sm text-gray-700 px-2">
+          <span className="retro text-sm text-gray-700 px-2">
             Page {currentPage} of {totalPages}
           </span>
           
           <Button
+            font="retro"
             variant="outline"
             size="sm"
             onClick={handleNextPage}

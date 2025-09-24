@@ -1,8 +1,9 @@
 import * as React from "react"
 import { Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/8bit/input"
 import { debounce } from "@/lib/utils"
 import { cn } from "@/lib/utils"
+import '@/components/ui/8bit/styles/retro.css'
 
 export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   value: string
@@ -53,6 +54,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
         <Input
+          font="retro"
           ref={ref}
           className={cn("pl-10", className)}
           value={internalValue}
