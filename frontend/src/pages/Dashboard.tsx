@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSocketSubscription } from '@/hooks/useSocket'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { LoadingCard } from '@/components/ui/loading'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { LoadingCard } from '@/components/ui/8bit/loading'
 import XpProgressBar from '@/components/gamification/XpProgressBar'
 import { BadgeDisplay } from '@/components/gamification/BadgeDisplay'
 import { LevelIndicator } from '@/components/gamification/LevelIndicator'
@@ -14,6 +14,7 @@ import StreakTracker from '@/components/widgets/StreakTracker'
 import { analyticsAPI, gamificationAPI } from '@/lib/api'
 import { LayoutDashboard, Target, TrendingUp, Trophy, Zap, BarChart3, Calendar } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import '@/components/ui/8bit/styles/retro.css'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -114,8 +115,8 @@ export default function Dashboard() {
       <div className="flex items-center gap-3">
         <LayoutDashboard className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight retro">Dashboard</h1>
+          <p className="text-muted-foreground retro">
             Welcome back, {user?.username}! Here's your coding progress overview.
           </p>
         </div>
@@ -124,9 +125,9 @@ export default function Dashboard() {
       {/* Gamification Overview */}
       {userGamification && (
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-          <Card>
+          <Card font="retro">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Current Level</CardTitle>
+              <CardTitle font="retro" className="text-sm font-medium">Current Level</CardTitle>
               <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -146,9 +147,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2">
+          <Card font="retro" className="md:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">XP Progress</CardTitle>
+              <CardTitle font="retro" className="text-sm font-medium">XP Progress</CardTitle>
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="space-y-2">
@@ -164,9 +165,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card font="retro">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recent Badges</CardTitle>
+              <CardTitle font="retro" className="text-sm font-medium">Recent Badges</CardTitle>
               <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -181,9 +182,9 @@ export default function Dashboard() {
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card font="retro">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Problems</CardTitle>
+            <CardTitle font="retro" className="text-sm font-medium">Total Problems</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -194,9 +195,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card font="retro">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+            <CardTitle font="retro" className="text-sm font-medium">Current Streak</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -207,9 +208,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card font="retro">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Patterns Completed</CardTitle>
+            <CardTitle font="retro" className="text-sm font-medium">Patterns Completed</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -222,9 +223,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card font="retro">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+            <CardTitle font="retro" className="text-sm font-medium">This Month</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -238,10 +239,10 @@ export default function Dashboard() {
 
       {/* Recent Badges */}
       {recentBadges.length > 0 && (
-        <Card>
+        <Card font="retro">
           <CardHeader>
-            <CardTitle>Recent Achievements</CardTitle>
-            <CardDescription>
+            <CardTitle font="retro">Recent Achievements</CardTitle>
+            <CardDescription font="retro">
               Your latest badge unlocks and accomplishments
             </CardDescription>
           </CardHeader>
@@ -254,48 +255,48 @@ export default function Dashboard() {
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link to="/patterns">
-          <Card className="cursor-pointer hover:bg-accent transition-colors">
+          <Card font="retro" className="cursor-pointer hover:bg-accent transition-colors">
             <CardContent className="flex items-center gap-4 p-6">
               <Target className="h-8 w-8 text-primary" />
               <div>
-                <h3 className="font-semibold">Continue Learning</h3>
-                <p className="text-sm text-muted-foreground">Practice coding patterns</p>
+                <h3 className="font-semibold retro">Continue Learning</h3>
+                <p className="text-sm text-muted-foreground retro">Practice coding patterns</p>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link to="/analytics">
-          <Card className="cursor-pointer hover:bg-accent transition-colors">
+          <Card font="retro" className="cursor-pointer hover:bg-accent transition-colors">
             <CardContent className="flex items-center gap-4 p-6">
               <BarChart3 className="h-8 w-8 text-primary" />
               <div>
-                <h3 className="font-semibold">View Analytics</h3>
-                <p className="text-sm text-muted-foreground">Track your progress</p>
+                <h3 className="font-semibold retro">View Analytics</h3>
+                <p className="text-sm text-muted-foreground retro">Track your progress</p>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link to="/leaderboards">
-          <Card className="cursor-pointer hover:bg-accent transition-colors">
+          <Card font="retro" className="cursor-pointer hover:bg-accent transition-colors">
             <CardContent className="flex items-center gap-4 p-6">
               <Trophy className="h-8 w-8 text-primary" />
               <div>
-                <h3 className="font-semibold">Leaderboards</h3>
-                <p className="text-sm text-muted-foreground">Compare with others</p>
+                <h3 className="font-semibold retro">Leaderboards</h3>
+                <p className="text-sm text-muted-foreground retro">Compare with others</p>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link to="/challenges">
-          <Card className="cursor-pointer hover:bg-accent transition-colors">
+          <Card font="retro" className="cursor-pointer hover:bg-accent transition-colors">
             <CardContent className="flex items-center gap-4 p-6">
               <Zap className="h-8 w-8 text-primary" />
               <div>
-                <h3 className="font-semibold">Challenges</h3>
-                <p className="text-sm text-muted-foreground">Join competitions</p>
+                <h3 className="font-semibold retro">Challenges</h3>
+                <p className="text-sm text-muted-foreground retro">Join competitions</p>
               </div>
             </CardContent>
           </Card>
@@ -329,10 +330,10 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Activity */}
-      <Card>
+      <Card font="retro">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>
+          <CardTitle font="retro">Recent Activity</CardTitle>
+          <CardDescription font="retro">
             Your latest problem solving activity across all platforms
           </CardDescription>
         </CardHeader>
@@ -368,7 +369,7 @@ export default function Dashboard() {
                   }`} />
                   <div>
                     <p className="font-medium">{activity.problem}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground retro">
                       {activity.platform} • {activity.difficulty}
                     </p>
                   </div>
