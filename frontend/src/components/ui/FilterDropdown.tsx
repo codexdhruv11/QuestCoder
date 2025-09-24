@@ -5,9 +5,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/8bit/select"
+import { Label } from "@/components/ui/8bit/label"
 import { cn } from "@/lib/utils"
+import '@/components/ui/8bit/styles/retro.css'
 
 export interface FilterOption {
   value: string
@@ -24,14 +25,14 @@ export interface FilterDropdownProps extends Omit<React.ComponentPropsWithoutRef
 }
 
 const FilterDropdown = React.forwardRef<
-  React.ElementRef<typeof Select>,
+  HTMLDivElement,
   FilterDropdownProps
 >(({ label, value, onChange, options, placeholder, className, ...props }, ref) => {
   return (
-    <div className={cn("space-y-2", className)}>
-      <Label className="text-sm font-medium">{label}</Label>
-      <Select ref={ref} value={value} onValueChange={onChange} {...props}>
-        <SelectTrigger className="w-full">
+    <div ref={ref} className={cn("space-y-2", className)}>
+      <Label font="retro" className="retro text-sm font-medium">{label}</Label>
+      <Select value={value} onValueChange={onChange} {...props}>
+        <SelectTrigger font="retro" className="w-full">
           <SelectValue placeholder={placeholder || `Select ${label.toLowerCase()}`} />
         </SelectTrigger>
         <SelectContent>
