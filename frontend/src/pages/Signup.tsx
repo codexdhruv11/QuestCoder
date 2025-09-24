@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/8bit/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Input } from '@/components/ui/8bit/input'
+import { Label } from '@/components/ui/8bit/label'
 import { Code2, Eye, EyeOff } from 'lucide-react'
+import '@/components/ui/8bit/styles/retro.css'
 
 const signupSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be at most 20 characters'),
@@ -89,18 +90,18 @@ export default function Signup() {
           <div className="flex justify-center">
             <Code2 className="h-12 w-12 text-primary" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold tracking-tight">
+          <h2 className="mt-6 text-3xl font-bold tracking-tight retro">
             Create your account
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground retro">
             Join QuestCoder and start tracking your progress
           </p>
         </div>
 
-        <Card>
+        <Card font="retro">
           <CardHeader>
-            <CardTitle>Sign Up</CardTitle>
-            <CardDescription>
+            <CardTitle font="retro">Sign Up</CardTitle>
+            <CardDescription font="retro">
               Create a new account to get started
             </CardDescription>
           </CardHeader>
@@ -113,8 +114,8 @@ export default function Signup() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
+                <Label htmlFor="username" font="retro">Username</Label>
+                <Input font="retro"
                   {...register('username')}
                   id="username"
                   type="text"
@@ -127,8 +128,8 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
+                <Label htmlFor="email" font="retro">Email</Label>
+                <Input font="retro"
                   {...register('email')}
                   id="email"
                   type="email"
@@ -141,9 +142,9 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" font="retro">Password</Label>
                 <div className="relative">
-                  <Input
+                  <Input font="retro"
                     {...register('password')}
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -168,9 +169,9 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword" font="retro">Confirm Password</Label>
                 <div className="relative">
-                  <Input
+                  <Input font="retro"
                     {...register('confirmPassword')}
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
@@ -195,14 +196,14 @@ export default function Signup() {
               </div>
 
               <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-3 text-muted-foreground">
+                <h3 className="text-sm font-medium mb-3 text-muted-foreground retro">
                   Platform Handles (Optional)
                 </h3>
                 
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="leetcodeHandle">LeetCode Handle</Label>
-                    <Input
+                    <Label htmlFor="leetcodeHandle" font="retro">LeetCode Handle</Label>
+                    <Input font="retro"
                       {...register('leetcodeHandle')}
                       id="leetcodeHandle"
                       type="text"
@@ -211,8 +212,8 @@ export default function Signup() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="codeforcesHandle">Codeforces Handle</Label>
-                    <Input
+                    <Label htmlFor="codeforcesHandle" font="retro">Codeforces Handle</Label>
+                    <Input font="retro"
                       {...register('codeforcesHandle')}
                       id="codeforcesHandle"
                       type="text"
@@ -221,8 +222,8 @@ export default function Signup() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="githubHandle">GitHub Handle</Label>
-                    <Input
+                    <Label htmlFor="githubHandle" font="retro">GitHub Handle</Label>
+                    <Input font="retro"
                       {...register('githubHandle')}
                       id="githubHandle"
                       type="text"
@@ -231,8 +232,8 @@ export default function Signup() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hackerrankHandle">HackerRank Handle</Label>
-                    <Input
+                    <Label htmlFor="hackerrankHandle" font="retro">HackerRank Handle</Label>
+                    <Input font="retro"
                       {...register('hackerrankHandle')}
                       id="hackerrankHandle"
                       type="text"
@@ -241,8 +242,8 @@ export default function Signup() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hackerearthHandle">HackerEarth Handle</Label>
-                    <Input
+                    <Label htmlFor="hackerearthHandle" font="retro">HackerEarth Handle</Label>
+                    <Input font="retro"
                       {...register('hackerearthHandle')}
                       id="hackerearthHandle"
                       type="text"
@@ -252,7 +253,7 @@ export default function Signup() {
                 </div>
               </div>
 
-              <Button
+              <Button font="retro"
                 type="submit"
                 className="w-full"
                 disabled={isLoading}
