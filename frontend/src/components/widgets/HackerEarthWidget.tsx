@@ -1,9 +1,10 @@
+import '@/components/ui/8bit/styles/retro.css'
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/8bit/card'
 import { widgetsAPI } from '@/lib/api'
 import { Trophy, Award, Activity, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/8bit/button'
+import { Badge } from '@/components/ui/8bit/badge'
 
 interface HackerEarthStats {
   username: string
@@ -54,12 +55,12 @@ export default function HackerEarthWidget({ handle }: HackerEarthWidgetProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-purple-500" />
-              <CardTitle className="text-lg">HackerEarth</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">HackerEarth</CardTitle>
             </div>
             <div className="animate-spin">
               <RefreshCw className="h-4 w-4" />
@@ -78,14 +79,14 @@ export default function HackerEarthWidget({ handle }: HackerEarthWidgetProps) {
 
   if (error || !stats) {
     return (
-      <Card>
+      <Card font="retro">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-purple-500" />
-              <CardTitle className="text-lg">HackerEarth</CardTitle>
+              <CardTitle font="retro" className="retro text-lg">HackerEarth</CardTitle>
             </div>
-            <Button variant="ghost" size="sm" onClick={fetchStats}>
+            <Button font="retro" variant="ghost" size="sm" onClick={fetchStats}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -98,18 +99,18 @@ export default function HackerEarthWidget({ handle }: HackerEarthWidgetProps) {
   }
 
   return (
-    <Card>
+    <Card font="retro">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-purple-500" />
-            <CardTitle className="text-lg">HackerEarth</CardTitle>
+            <CardTitle font="retro" className="retro text-lg">HackerEarth</CardTitle>
           </div>
-          <Button variant="ghost" size="sm" onClick={fetchStats}>
+          <Button font="retro" variant="ghost" size="sm" onClick={fetchStats}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <CardDescription>@{stats.username}</CardDescription>
+        <CardDescription font="retro">@{stats.username}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Stats Grid */}
@@ -135,11 +136,11 @@ export default function HackerEarthWidget({ handle }: HackerEarthWidgetProps) {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Award className="h-4 w-4 text-muted-foreground" />
-              <h4 className="text-sm font-medium">Badges</h4>
+              <h4 className="retro text-sm font-medium">Badges</h4>
             </div>
             <div className="flex flex-wrap gap-2">
               {stats.badges.map((badge, index) => (
-                <Badge key={index} variant="secondary">
+                <Badge font="retro" key={index} variant="secondary">
                   {badge}
                 </Badge>
               ))}
@@ -152,12 +153,12 @@ export default function HackerEarthWidget({ handle }: HackerEarthWidgetProps) {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Activity className="h-4 w-4 text-muted-foreground" />
-              <h4 className="text-sm font-medium">Recent Activity</h4>
+              <h4 className="retro text-sm font-medium">Recent Activity</h4>
             </div>
             <div className="space-y-2">
               {stats.recentActivity.slice(0, 3).map((activity, index) => (
                 <div key={index} className="text-xs">
-                  <div className="font-medium">{activity.title}</div>
+                  <div className="retro font-medium">{activity.title}</div>
                   <div className="text-muted-foreground">
                     {activity.type} • {new Date(activity.date).toLocaleDateString()}
                   </div>
