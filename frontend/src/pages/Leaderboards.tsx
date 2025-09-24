@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Input } from '@/components/ui/input'
-import { useToast } from '@/components/ui/use-toast'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
+import { Badge } from '@/components/ui/8bit/badge'
+import { Button } from '@/components/ui/8bit/button'
+import { ScrollArea } from '@/components/ui/8bit/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/8bit/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/8bit/avatar'
+import { Skeleton } from '@/components/ui/8bit/skeleton'
+import { Input } from '@/components/ui/8bit/input'
+import { useToast } from '@/components/ui/8bit/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LevelBadge } from '@/components/gamification/LevelIndicator'
 import { CompactBadgeList } from '@/components/gamification/BadgeDisplay'
@@ -199,7 +199,7 @@ const LeaderboardEntry: React.FC<{
           <div className="relative">
             <Avatar className="h-10 w-10">
               <AvatarImage src={entry.avatar} alt={entry.username} />
-              <AvatarFallback>
+              <AvatarFallback font="retro">
                 {entry.username.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -594,9 +594,9 @@ const Leaderboards: React.FC = () => {
 
   // Activity Feed Component
   const ActivityFeed = () => (
-    <Card>
+    <Card font="retro">
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
+        <CardTitle font="retro" className="flex items-center space-x-2">
           <Activity className="h-5 w-5" />
           <span>Live Activity</span>
         </CardTitle>
@@ -632,9 +632,9 @@ const Leaderboards: React.FC = () => {
 
   // Live Statistics Component  
   const LiveStatistics = () => (
-    <Card>
+    <Card font="retro">
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
+        <CardTitle font="retro" className="flex items-center space-x-2">
           <TrendingUp className="h-5 w-5" />
           <span>Live Statistics</span>
         </CardTitle>
@@ -737,7 +737,7 @@ const Leaderboards: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Leaderboards</h1>
+          <h1 className="retro text-3xl font-bold">Leaderboards</h1>
           <p className="text-muted-foreground">
             Compete with fellow coders and track your ranking
           </p>
@@ -767,7 +767,7 @@ const Leaderboards: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
+          <Card font="retro">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
@@ -788,7 +788,7 @@ const Leaderboards: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card>
+          <Card font="retro">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
@@ -809,7 +809,7 @@ const Leaderboards: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
+          <Card font="retro">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
@@ -827,7 +827,7 @@ const Leaderboards: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card font="retro">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center space-x-2">
@@ -859,7 +859,7 @@ const Leaderboards: React.FC = () => {
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <Input font="retro"
                 placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -874,7 +874,7 @@ const Leaderboards: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Leaderboard Tabs - Main Content */}
         <div className="lg:col-span-3">
-          <Tabs defaultValue="xp" className="space-y-6">
+          <Tabs font="retro" defaultValue="xp" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="xp" className="flex items-center space-x-2">
                 <Zap className="h-4 w-4" />
@@ -892,9 +892,9 @@ const Leaderboards: React.FC = () => {
 
         {(['xp', 'problemsSolved', 'streak'] as const).map((type) => (
           <TabsContent key={type} value={type} className="space-y-4">
-            <Card>
+            <Card font="retro">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
+                <CardTitle font="retro" className="flex items-center space-x-2">
                   {React.createElement(leaderboardTypes[type].icon, { 
                     className: `h-5 w-5 ${leaderboardTypes[type].color}` 
                   })}
