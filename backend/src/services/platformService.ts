@@ -102,6 +102,12 @@ export interface LeetCodeStats {
   }>
 }
 
+export interface SubmissionHistory {
+  date: string // YYYY-MM-DD format
+  count: number
+  platform: 'leetcode' | 'codeforces'
+}
+
 export interface CodeforcesStats {
   handle: string
   rating: number
@@ -141,9 +147,9 @@ export class PlatformService {
   private static githubApi: AxiosInstance
 
   static {
-    // LeetCode API (using third-party service)
+    // LeetCode API (using faisal-shohag's API with submission calendar support)
     this.leetcodeApi = axios.create({
-      baseURL: process.env['LEETCODE_API_URL'] || 'https://leetcode-stats-api.herokuapp.com',
+      baseURL: process.env['LEETCODE_API_URL'] || 'https://leetcode-api-faisalshohag.vercel.app',
       timeout: 10000,
       headers: {
         'User-Agent': 'QuestCoder/1.0'
@@ -243,6 +249,57 @@ export class PlatformService {
   }
 
   /**
+   * Fetch LeetCode submission history with actual dates from submission calendar
+   * Returns submissions grouped by date for contribution graph
+   */
+  static async getLeetCodeSubmissionHistory(handle: string): Promise<SubmissionHistory[]> {
+    const cacheKey = `leetcode-history:${handle}`
+
+    // Check cache first
+    const cachedData = cache.get(cacheKey)
+    if (cachedData) {
+      logger.info(`LeetCode submission history served from cache for handle: ${handle}`)
+      return cachedData
+    }
+
+    try {
+      logger.info(`Fetching LeetCode submission history for handle: ${handle}`)
+
+      const response: AxiosResponse = await this.leetcodeApi.get(`/${handle}`)
+
+      // submissionCalendar is an object with Unix timestamps as keys and submission counts as values
+      // Example: { "1755648000": 3, "1755561600": 2 }
+      const submissionCalendar = response.data.submissionCalendar || {}
+
+      // Convert Unix timestamps to YYYY-MM-DD format
+      const history: SubmissionHistory[] = Object.entries(submissionCalendar).map(([timestamp, count]) => {
+        const date = new Date(parseInt(timestamp) * 1000)
+        const dateStr = date.toISOString().split('T')[0]!
+
+        return {
+          date: dateStr,
+          count: count as number,
+          platform: 'leetcode' as const
+        }
+      })
+
+      // Sort by date (oldest first)
+      history.sort((a, b) => a.date.localeCompare(b.date))
+
+      const totalSubmissions = history.reduce((sum, day) => sum + day.count, 0)
+      logger.info(`Found ${history.length} days of LeetCode activity with ${totalSubmissions} total submissions for ${handle}`)
+
+      // Cache for 2 hours
+      cache.set(cacheKey, history, 7200)
+
+      return history
+    } catch (error) {
+      logger.error(`Failed to fetch LeetCode submission history for ${handle}:`, error)
+      return []
+    }
+  }
+
+  /**
    * Fetch Codeforces statistics for a user
    */
   static async getCodeforcesStats(handle: string): Promise<CodeforcesStats> {
@@ -274,8 +331,48 @@ export class PlatformService {
       const userInfo = userResponse.data.result[0]
       
       // Fetch user contests
-      const contestResponse = await this.codeforcesApi.get(`/user.rating?handle=${handle}`)
-      const contests = contestResponse.data.status === 'OK' ? contestResponse.data.result : []
+      const contestResponse = await this.codeforcesApi.get(`/user.rating?handle=${handle}`).catch(() => null)
+      const contests = contestResponse?.data?.status === 'OK' ? contestResponse.data.result : []
+
+      // Fetch ALL submissions with pagination (API limit is 100 per request)
+      let allSubmissions: any[] = []
+      let from = 1
+      const batchSize = 100
+
+      while (allSubmissions.length < 10000) { // Safety limit
+        try {
+          const statusResponse = await this.codeforcesApi.get(
+            `/user.status?handle=${handle}&from=${from}&count=${batchSize}`
+          )
+
+          if (statusResponse.data.status !== 'OK') break
+
+          const batch = statusResponse.data.result || []
+          if (batch.length === 0) break
+
+          allSubmissions = allSubmissions.concat(batch)
+
+          if (batch.length < batchSize) break // Got all submissions
+
+          from += batchSize
+          await new Promise(resolve => setTimeout(resolve, 200)) // Rate limit protection
+        } catch (error) {
+          logger.warn(`Failed to fetch batch ${from} for ${handle}`)
+          break
+        }
+      }
+
+      // Count unique solved problems
+      const solvedProblems = new Set<string>()
+      allSubmissions.forEach((submission: any) => {
+        if (submission.verdict === 'OK' && submission.problem) {
+          const problemId = `${submission.problem.contestId}-${submission.problem.index}`
+          solvedProblems.add(problemId)
+        }
+      })
+
+      const problemsSolved = solvedProblems.size
+      logger.info(`Found ${problemsSolved} unique solved problems from ${allSubmissions.length} total submissions for ${handle}`)
 
       const stats: CodeforcesStats = {
         handle,
@@ -284,7 +381,7 @@ export class PlatformService {
         rank: userInfo.rank || 'Unrated',
         maxRank: userInfo.maxRank || 'Unrated',
         contestsParticipated: contests.length,
-        problemsSolved: 0, // Codeforces API doesn't provide this directly
+        problemsSolved,
         recentContests: contests.slice(-5).map((contest: any, index: number) => ({
           id: contest.contestId?.toString() || index.toString(),
           name: contest.contestName || `Contest ${contest.contestId}`,
@@ -294,36 +391,282 @@ export class PlatformService {
         }))
       }
 
+      logger.info(`✅ Successfully fetched REAL Codeforces stats for ${handle}: ${problemsSolved} problems solved`)
+
       // Cache for 2 hours
       cache.set(cacheKey, stats, 7200)
-      
+
       return stats
     } catch (error) {
-      logger.error(`Failed to fetch Codeforces stats for ${handle}:`, error)
-      
-      // Return mock data as fallback
-      const mockStats: CodeforcesStats = {
+      logger.error(`❌ FAILED to fetch Codeforces stats for ${handle}:`, error)
+      logger.warn(`⚠️  Returning ZERO stats (no mock data) for ${handle}`)
+
+      // Return empty stats instead of mock data
+      const emptyStats: CodeforcesStats = {
         handle,
-        rating: 1567,
-        maxRating: 1678,
-        rank: 'Expert',
-        maxRank: 'Candidate Master',
-        contestsParticipated: 23,
-        problemsSolved: 0, // Placeholder - would need user.status API call to compute
-        recentContests: [
-          {
-            id: '1',
-            name: 'Codeforces Round #912',
-            rank: 245,
-            ratingChange: 32,
-            date: new Date().toISOString()
-          }
-        ]
+        rating: 0,
+        maxRating: 0,
+        rank: 'Unrated',
+        maxRank: 'Unrated',
+        contestsParticipated: 0,
+        problemsSolved: 0, // Don't use mock data - show real 0
+        recentContests: []
       }
-      
-      // Cache mock data for 5 minutes
-      cache.set(cacheKey, mockStats, 300)
-      return mockStats
+
+      // Don't cache errors - let it retry next time
+      return emptyStats
+    }
+  }
+
+  /**
+   * Fetch Codeforces ALL submissions (including retries) grouped by date
+   * For contribution graph - shows total submission activity
+   */
+  static async getCodeforcesAllSubmissions(handle: string): Promise<SubmissionHistory[]> {
+    const cacheKey = `codeforces-all-submissions:${handle}`
+
+    // Check cache first
+    const cachedData = cache.get(cacheKey)
+    if (cachedData) {
+      logger.info(`Codeforces all submissions served from cache for handle: ${handle}`)
+      return cachedData
+    }
+
+    try {
+      logger.info(`Fetching ALL Codeforces submissions for handle: ${handle}`)
+
+      // Fetch all submissions with pagination
+      let allSubmissions: any[] = []
+      let from = 1
+      const batchSize = 100
+      const maxSubmissions = 10000
+
+      while (allSubmissions.length < maxSubmissions) {
+        const statusResponse = await this.codeforcesApi.get(
+          `/user.status?handle=${handle}&from=${from}&count=${batchSize}`
+        )
+
+        if (statusResponse.data.status !== 'OK') {
+          logger.warn(`Failed to fetch Codeforces submissions for ${handle} at batch ${from}`)
+          break
+        }
+
+        const batch = statusResponse.data.result || []
+        if (batch.length === 0) break
+
+        allSubmissions = allSubmissions.concat(batch)
+
+        if (batch.length < batchSize) {
+          logger.info(`Fetched all ${allSubmissions.length} submissions for ${handle}`)
+          break
+        }
+
+        from += batchSize
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
+
+      logger.info(`Total Codeforces submissions fetched for ${handle}: ${allSubmissions.length}`)
+
+      // Group ALL submissions by date (not just first solves)
+      const submissionsByDate = new Map<string, number>()
+
+      allSubmissions.forEach((submission: any) => {
+        if (submission.creationTimeSeconds) {
+          const date = new Date(submission.creationTimeSeconds * 1000)
+          const dateStr = date.toISOString().split('T')[0]!
+
+          submissionsByDate.set(dateStr, (submissionsByDate.get(dateStr) || 0) + 1)
+        }
+      })
+
+      // Convert to array format
+      const history: SubmissionHistory[] = Array.from(submissionsByDate.entries()).map(([date, count]) => ({
+        date,
+        count,
+        platform: 'codeforces' as const
+      }))
+
+      // Sort by date
+      history.sort((a, b) => a.date.localeCompare(b.date))
+
+      const totalSubmissions = history.reduce((sum, day) => sum + day.count, 0)
+      logger.info(`Found ${history.length} days with ${totalSubmissions} total Codeforces submissions for ${handle}`)
+
+      // Cache for 2 hours
+      cache.set(cacheKey, history, 7200)
+
+      return history
+    } catch (error) {
+      logger.error(`Failed to fetch Codeforces all submissions for ${handle}:`, error)
+      return []
+    }
+  }
+
+  /**
+   * Fetch Codeforces submission history with actual dates
+   * Returns UNIQUE problems solved (first solve only) for stats calculation
+   */
+  static async getCodeforcesSubmissionHistory(handle: string): Promise<SubmissionHistory[]> {
+    const cacheKey = `codeforces-history:${handle}`
+
+    // Check cache first
+    const cachedData = cache.get(cacheKey)
+    if (cachedData) {
+      logger.info(`Codeforces submission history served from cache for handle: ${handle}`)
+      return cachedData
+    }
+
+    try {
+      logger.info(`Fetching Codeforces submission history for handle: ${handle}`)
+
+      // Codeforces API returns max 100 submissions per request, so we need pagination
+      let allSubmissions: any[] = []
+      let from = 1
+      const batchSize = 100
+      const maxSubmissions = 10000 // Safety limit
+
+      while (allSubmissions.length < maxSubmissions) {
+        logger.info(`Fetching submissions ${from} to ${from + batchSize - 1} for ${handle}`)
+
+        const statusResponse = await this.codeforcesApi.get(
+          `/user.status?handle=${handle}&from=${from}&count=${batchSize}`
+        )
+
+        if (statusResponse.data.status !== 'OK') {
+          logger.warn(`Failed to fetch Codeforces submissions for ${handle} at batch ${from}`)
+          break
+        }
+
+        const batch = statusResponse.data.result || []
+
+        // If we got fewer than batchSize, we've reached the end
+        if (batch.length === 0) {
+          logger.info(`Reached end of submissions for ${handle} at ${from}`)
+          break
+        }
+
+        allSubmissions = allSubmissions.concat(batch)
+
+        // If we got fewer than batchSize, we've fetched everything
+        if (batch.length < batchSize) {
+          logger.info(`Fetched all ${allSubmissions.length} submissions for ${handle}`)
+          break
+        }
+
+        from += batchSize
+
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
+
+      const submissions = allSubmissions
+      logger.info(`Total submissions fetched for ${handle}: ${submissions.length}`)
+
+      // Sort submissions by time (oldest first) to track first solves correctly
+      submissions.sort((a: any, b: any) => (a.creationTimeSeconds || 0) - (b.creationTimeSeconds || 0))
+
+      const solvedByDate = new Map<string, Set<string>>() // date -> Set of problemIds
+      const globalSolvedProblems = new Set<string>() // Track all problems ever solved
+
+      // Process submissions and group by date
+      submissions.forEach((submission: any) => {
+        // Only count accepted submissions
+        if (submission.verdict === 'OK' && submission.creationTimeSeconds && submission.problem) {
+          const date = new Date(submission.creationTimeSeconds * 1000)
+          const dateStr: string = date.toISOString().split('T')[0]! // YYYY-MM-DD, guaranteed to exist
+
+          const contestId = submission.problem.contestId || 'unknown'
+          const index = submission.problem.index || 'unknown'
+          const problemId = `${contestId}-${index}`
+
+          // Only count if this is the FIRST time solving this problem
+          if (!globalSolvedProblems.has(problemId)) {
+            globalSolvedProblems.add(problemId)
+
+            if (!solvedByDate.has(dateStr)) {
+              solvedByDate.set(dateStr, new Set())
+            }
+            solvedByDate.get(dateStr)!.add(problemId)
+          }
+          // If already solved before, don't count it again on this day
+        }
+      })
+
+      // Convert to array format
+      const history: SubmissionHistory[] = Array.from(solvedByDate.entries()).map(([date, problems]) => ({
+        date,
+        count: problems.size,
+        platform: 'codeforces' as const
+      }))
+
+      const totalUniqueProblems = globalSolvedProblems.size
+      const historyTotalProblems = history.reduce((sum, day) => sum + day.count, 0)
+
+      logger.info(`Found ${history.length} days of Codeforces activity with ${totalUniqueProblems} unique problems for ${handle}`)
+      logger.info(`📊 History array sum: ${historyTotalProblems} problems (should equal ${totalUniqueProblems})`)
+
+      if (historyTotalProblems !== totalUniqueProblems) {
+        logger.error(`❌ MISMATCH: globalSolved=${totalUniqueProblems}, historySum=${historyTotalProblems}`)
+        logger.info(`Sample days: ${JSON.stringify(history.slice(0, 5))}`)
+      }
+
+      // Cache for 2 hours
+      cache.set(cacheKey, history, 7200)
+
+      return history
+    } catch (error) {
+      logger.error(`Failed to fetch Codeforces submission history for ${handle}:`, error)
+      return []
+    }
+  }
+
+  /**
+   * Fetch combined submission history from LeetCode and Codeforces
+   * Returns actual submission dates from platform APIs
+   */
+  static async getCombinedSubmissionHistory(
+    leetcodeHandle?: string,
+    codeforcesHandle?: string
+  ): Promise<SubmissionHistory[]> {
+    const histories: SubmissionHistory[] = []
+
+    try {
+      // Fetch both platform histories in parallel for better performance
+      const promises: Promise<SubmissionHistory[]>[] = []
+
+      if (leetcodeHandle) {
+        promises.push(this.getLeetCodeSubmissionHistory(leetcodeHandle))
+      }
+
+      if (codeforcesHandle) {
+        promises.push(this.getCodeforcesSubmissionHistory(codeforcesHandle))
+      }
+
+      const results = await Promise.allSettled(promises)
+
+      // Combine all successful results
+      results.forEach(result => {
+        if (result.status === 'fulfilled') {
+          histories.push(...result.value)
+        }
+      })
+
+      // Sort by date (oldest first) after combining
+      histories.sort((a, b) => a.date.localeCompare(b.date))
+
+      const totalDays = histories.length
+      const totalSubmissions = histories.reduce((sum, day) => sum + day.count, 0)
+      const leetcodeDays = histories.filter(h => h.platform === 'leetcode').length
+      const codeforcesDays = histories.filter(h => h.platform === 'codeforces').length
+
+      logger.info(`✅ Fetched combined submission history: ${totalDays} days (${totalSubmissions} submissions)`)
+      logger.info(`   - LeetCode: ${leetcodeDays} days`)
+      logger.info(`   - Codeforces: ${codeforcesDays} days`)
+
+      return histories
+    } catch (error) {
+      logger.error('Failed to fetch combined submission history:', error)
+      return []
     }
   }
 
@@ -332,7 +675,7 @@ export class PlatformService {
    */
   static async getGitHubStats(handle: string): Promise<GitHubStats> {
     const cacheKey = `github:${handle}`
-    
+
     // Check cache first
     const cachedData = cache.get(cacheKey)
     if (cachedData) {
