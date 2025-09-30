@@ -216,7 +216,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socketInstance.off('leaderboard_update')
     socketInstance.off('rank_update')
     socketInstance.off('stats_update')
-    socketInstance.off('analytics_update')
     
     // User progress updates
     socketInstance.on('user_progress_update', (data: UserProgressUpdate) => {
@@ -269,14 +268,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       // Handle both formats - new format has userId and stats, old format has flat fields
       const userId = data.userId || (data.stats ? 'unknown' : undefined)
       const eventId = `stats_${userId}_${data.timestamp}`
-      if (!isEventDuplicate(eventId)) {
-        updateConnectionQuality(true, true)
-      }
-    })
-
-    // Analytics updates
-    socketInstance.on('analytics_update', (data: any) => {
-      const eventId = `analytics_${data.userId}_${data.timestamp}`
       if (!isEventDuplicate(eventId)) {
         updateConnectionQuality(true, true)
       }

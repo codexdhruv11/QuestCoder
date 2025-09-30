@@ -1,675 +1,212 @@
-import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/8bit/card'
-import { Badge } from '@/components/ui/8bit/badge'
-import { Button } from '@/components/ui/8bit/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/8bit/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/8bit/select'
-import { DatePicker } from '@/components/ui/8bit/date-picker'
-import { LineChart, BarChart, PieChart } from '@/components/ui/8bit/chart'
-import { Skeleton } from '@/components/ui/8bit/skeleton'
-import { useToast } from '@/components/ui/8bit/use-toast'
-import { motion } from 'framer-motion'
-import { 
-  TrendingUp, 
-  Target, 
-  Clock, 
-  Brain, 
-  Zap, 
-  
-  Download,
-  Filter,
-  
-  Activity,
-  Trophy,
-  Flame
-} from 'lucide-react'
-import { subDays } from 'date-fns'
+import { useState, useEffect } from 'react'
 import { analyticsAPI } from '@/lib/api'
-import { PatternRadar, PatternMasteryData } from '@/components/analytics/PatternRadar'
-import { PredictiveInsights, PredictiveData } from '@/components/analytics/PredictiveInsights'
+import { AnalyticsStats, ContributionDay, WeeklyActivity } from '@/types'
+import { YearSelector } from '@/components/analytics/YearSelector'
+import { ContributionGraph } from '@/components/analytics/ContributionGraph'
+import { EfficiencyCard } from '@/components/analytics/EfficiencyCard'
+import { PlatformComparison } from '@/components/analytics/PlatformComparison'
+import { WeeklyActivityChart } from '@/components/analytics/WeeklyActivityChart'
+import { PlatformDistributionCharts } from '@/components/analytics/PlatformDistributionCharts'
+import { Loading } from '@/components/ui/8bit/loading'
+import { Code2, Sword, TrendingUp, BarChart3 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
-interface AnalyticsData {
-  overview: {
-    totalProblems: number
-    problemsSolved: number
-    currentStreak: number
-    longestStreak: number
-    totalXP: number
-  }
-  progressChart: {
-    date: string
-    problemsSolved: number
-    timeSpent: number
-    xpGained: number
-  }[]
-  patternAnalytics: {
-    pattern: string
-    totalProblems: number
-    solved: number
-    completionRate: number
-    averageTime: number
-    difficulty: 'Easy' | 'Medium' | 'Hard'
-  }[]
-  patternRadarData: PatternMasteryData[]
-  predictiveInsightsData: PredictiveData
-  timeAnalytics: {
-    hour: number
-    problemsSolved: number
-    averageTime: number
-    performance: number
-  }[]
-  performanceMetrics: {
-    metric: string
-    current: number
-    previous: number
-    change: number
-    trend: 'up' | 'down' | 'stable'
-  }[]
-  predictions: {
-    nextLevelDays: number
-    projectedCompletionRate: number
-    suggestedFocusAreas: string[]
-    estimatedTimeToGoal: number
-  }
-}
-
-const timeRanges = {
-  '7d': { label: 'Last 7 Days', days: 7 },
-  '30d': { label: 'Last 30 Days', days: 30 },
-  '90d': { label: 'Last 3 Months', days: 90 },
-  '1y': { label: 'Last Year', days: 365 }
-}
-
-const Analytics: React.FC = () => {
-  const [data, setData] = useState<AnalyticsData | null>(null)
+export default function Analytics() {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState('30d')
-  const [selectedPattern, setSelectedPattern] = useState('all')
-  const [startDate, setStartDate] = useState<Date | undefined>(subDays(new Date(), 30))
-  const [endDate, setEndDate] = useState<Date | undefined>(new Date())
-  const { toast } = useToast()
+  const [stats, setStats] = useState<AnalyticsStats | null>(null)
+  const [contributions, setContributions] = useState<ContributionDay[]>([])
+  const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivity[]>([])
 
+  // Fetch analytics data
   useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true)
+
+        // Fetch all data in parallel
+        const [statsData, contributionData, weeklyData] = await Promise.all([
+          analyticsAPI.getStats(),
+          analyticsAPI.getContributionHistory(selectedYear),
+          analyticsAPI.getWeeklyActivity(selectedYear)
+        ])
+
+        setStats(statsData)
+        setContributions(contributionData.data || [])
+        setWeeklyActivity(weeklyData)
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error)
+        toast.error('Failed to load analytics data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchAnalytics()
-  }, [timeRange, selectedPattern, startDate, endDate])
-
-  const fetchAnalytics = async () => {
-    setLoading(true)
-    try {
-      const period = timeRange === '7d' ? 'daily' : timeRange === '30d' ? 'daily' : timeRange === '90d' ? 'weekly' : 'monthly'
-      const days = timeRanges[timeRange as keyof typeof timeRanges].days
-      
-      const [overviewRes, progressRes, patternsRes, predictionsRes, performanceRes] = await Promise.all([
-        analyticsAPI.getOverview(),
-        analyticsAPI.getProgress(period, days),
-        analyticsAPI.getPatterns(),
-        analyticsAPI.getPredictions(),
-        analyticsAPI.getPerformance()
-      ])
-
-      // Transform insights array into expected predictions structure
-      const insights = predictionsRes?.insights || []
-      const predictions = {
-        nextLevelDays: insights.find((i: any) => i.type === 'completion_estimate')?.value || 0,
-        projectedCompletionRate: insights.find((i: any) => i.type === 'completion_estimate')?.confidence || 0,
-        suggestedFocusAreas: insights.filter((i: any) => i.type === 'goal_recommendation').map((i: any) => i.description),
-        estimatedTimeToGoal: insights.find((i: any) => i.type === 'streak_prediction')?.value || 0
-      }
-
-      // Helper function to generate time analytics from performance data
-      const generateTimeAnalytics = (metrics: any) => {
-        if (!metrics) return []
-        
-        // Create hourly analytics based on peak performance hour
-        const timeAnalytics = []
-        for (let hour = 0; hour < 24; hour++) {
-          const isOptimalHour = hour === metrics.peakPerformanceHour
-          timeAnalytics.push({
-            hour,
-            problemsSolved: isOptimalHour ? Math.floor(Math.random() * 5) + 3 : Math.floor(Math.random() * 3),
-            averageTime: isOptimalHour ? 15 : 20 + Math.floor(Math.random() * 10),
-            performance: isOptimalHour ? 85 + Math.floor(Math.random() * 15) : 60 + Math.floor(Math.random() * 25)
-          })
-        }
-        return timeAnalytics
-      }
-
-      // Helper function to convert performance metrics to expected format
-      const convertPerformanceMetrics = (metrics: any) => {
-        if (!metrics) return []
-        
-        return [
-          {
-            metric: 'Solving Velocity',
-            current: Math.round(metrics.solvingVelocity * 100) / 100,
-            previous: Math.round(metrics.solvingVelocity * 0.9 * 100) / 100,
-            change: Math.round((metrics.solvingVelocity - metrics.solvingVelocity * 0.9) / (metrics.solvingVelocity * 0.9) * 100),
-            trend: (metrics.improvementRate > 0 ? 'up' : metrics.improvementRate < 0 ? 'down' : 'stable') as 'up' | 'down' | 'stable'
-          },
-          {
-            metric: 'Consistency Score',
-            current: metrics.consistencyScore,
-            previous: Math.max(0, metrics.consistencyScore - 5),
-            change: 5,
-            trend: 'up' as 'up' | 'down' | 'stable'
-          },
-          {
-            metric: 'Session Time',
-            current: metrics.averageSessionTime,
-            previous: metrics.averageSessionTime + 2,
-            change: -2,
-            trend: 'down' as 'up' | 'down' | 'stable'
-          }
-        ]
-      }
-
-      // Helper function to map pattern analytics from backend format
-      const mapPatternAnalytics = (patterns: any[]) => {
-        if (!patterns) return []
-        
-        return patterns.map((pattern: any) => ({
-          pattern: pattern.patternName,
-          totalProblems: pattern.total,
-          solved: pattern.solved,
-          completionRate: pattern.completion,
-          averageTime: 25 + Math.floor(Math.random() * 20), // Placeholder since backend doesn't provide this
-          difficulty: (pattern.category === 'Array' ? 'Easy' : 
-                     pattern.category === 'Dynamic Programming' ? 'Hard' : 'Medium') as 'Easy' | 'Medium' | 'Hard'
-        }))
-      }
-
-      // Helper function to map progress chart from backend format
-      const mapProgressChart = (chartData: any[]) => {
-        if (!chartData) return []
-        
-        return chartData.map((point: any) => ({
-          date: point.date,
-          problemsSolved: point.value,
-          timeSpent: point.value * (20 + Math.floor(Math.random() * 30)), // Estimate based on problems solved
-          xpGained: point.value * (10 + Math.floor(Math.random() * 15)) // Estimate XP per problem
-        }))
-      }
-
-      // Transform data for specialized components
-      const transformPatternDataForRadar = (patterns: any[]): PatternMasteryData[] => {
-        if (!patterns) return []
-        
-        return patterns.map((pattern: any) => ({
-          pattern: pattern.patternName,
-          mastery: pattern.completion,
-          totalProblems: pattern.total,
-          solvedProblems: pattern.solved,
-          averageTime: 25 + Math.floor(Math.random() * 20), // Placeholder
-          difficulty: pattern.category === 'Array' ? 'Easy' : 
-                     pattern.category === 'Dynamic Programming' ? 'Hard' : 'Medium'
-        }))
-      }
-
-      const transformDataForPredictiveInsights = (predictionsData: any, metrics: any): PredictiveData => {
-        const insights = predictionsData?.insights || []
-        
-        return {
-          currentVelocity: metrics?.solvingVelocity || 1.5,
-          projectedCompletion: {
-            optimistic: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            realistic: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-            pessimistic: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-          recommendedDailyTarget: Math.ceil((metrics?.solvingVelocity || 1.5) * 1.2),
-          confidenceLevel: 75,
-          trendAnalysis: {
-            direction: metrics?.improvementRate > 0 ? 'improving' : 
-                      metrics?.improvementRate < 0 ? 'declining' : 'stable',
-            percentage: Math.abs(metrics?.improvementRate || 5),
-            description: insights.find((i: any) => i.type === 'goal_recommendation')?.description || 
-                        'Based on your current solving pace and consistency'
-          },
-          patternPredictions: (patterns || []).slice(0, 5).map((pattern: any) => ({
-            pattern: pattern.patternName,
-            currentMastery: pattern.completion,
-            projectedMastery: Math.min(100, pattern.completion + 20),
-            timeToComplete: Math.ceil((100 - pattern.completion) / 2),
-            difficulty: pattern.category === 'Array' ? 'Easy' : 
-                       pattern.category === 'Dynamic Programming' ? 'Hard' : 'Medium'
-          })),
-          milestones: [
-            {
-              name: 'Complete 50 Problems',
-              target: 50,
-              current: overviewRes?.problemsSolved || 0,
-              estimatedDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-              type: 'problems' as const
-            },
-            {
-              name: 'Master 5 Patterns',
-              target: 5,
-              current: (patterns || []).filter((p: any) => p.completion >= 80).length,
-              estimatedDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              type: 'patterns' as const
-            }
-          ]
-        }
-      }
-
-      // Extract nested data from API responses
-      const patterns = patternsRes?.patterns || []
-      const metrics = performanceRes?.metrics
-
-      const patternRadarData = transformPatternDataForRadar(patterns)
-      const predictiveInsightsData = transformDataForPredictiveInsights(predictionsRes, metrics)
-
-      const analyticsData = {
-        overview: overviewRes,
-        progressChart: mapProgressChart(progressRes?.chartData || []),
-        patternAnalytics: mapPatternAnalytics(patterns),
-        patternRadarData,
-        predictiveInsightsData,
-        timeAnalytics: generateTimeAnalytics(metrics),
-        performanceMetrics: convertPerformanceMetrics(metrics),
-        predictions
-      }
-      setData(analyticsData)
-    } catch (error) {
-      console.error('Error fetching analytics:', error)
-      toast({
-        title: "Error",
-        description: "Failed to load analytics data",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const exportData = async (format: 'csv' | 'pdf') => {
-    try {
-      const response = await fetch(`/api/analytics/export?format=${format}&timeRange=${timeRange}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-
-      if (!response.ok) throw new Error('Export failed')
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `analytics-${format === 'csv' ? 'data.csv' : 'report.pdf'}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast({
-        title: "Success",
-        description: `Analytics exported as ${format.toUpperCase()}`,
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to export data",
-        variant: "destructive"
-      })
-    }
-  }
+  }, [selectedYear])
 
   if (loading) {
+    return <Loading text="Loading analytics..." />
+  }
+
+  if (!stats) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="retro text-lg text-muted-foreground">
+            No analytics data available
+          </p>
+          <p className="retro text-sm text-muted-foreground mt-2">
+            Add your platform handles in your profile to see analytics
+          </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-        <Skeleton className="h-96" />
       </div>
     )
   }
 
-  if (!data) return null
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="retro text-3xl font-bold">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">
-            Track your progress and performance insights
+          <h1 className="retro text-3xl font-bold">Analytics</h1>
+          <p className="retro text-sm text-muted-foreground mt-1">
+            Track your coding journey across platforms
           </p>
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportData('csv')}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportData('pdf')}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export PDF
-          </Button>
+        <YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />
+      </div>
+
+      {/* Efficiency Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <EfficiencyCard
+          title="LeetCode"
+          submissions={stats.leetcode.submissions}
+          problemsSolved={stats.leetcode.problemsSolved}
+          efficiency={stats.leetcode.efficiency}
+          icon={<Code2 className="h-5 w-5" />}
+        />
+        <EfficiencyCard
+          title="Codeforces"
+          submissions={stats.codeforces.submissions}
+          problemsSolved={stats.codeforces.problemsSolved}
+          efficiency={stats.codeforces.efficiency}
+          icon={<Sword className="h-5 w-5" />}
+        />
+        <EfficiencyCard
+          title="Combined"
+          submissions={stats.combined.submissions}
+          problemsSolved={stats.combined.problemsSolved}
+          efficiency={stats.combined.efficiency}
+          icon={<TrendingUp className="h-5 w-5" />}
+        />
+      </div>
+
+      {/* Contribution Graph */}
+      <ContributionGraph data={contributions} year={selectedYear} />
+
+      {/* Platform Comparison */}
+      <PlatformComparison stats={stats} />
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Weekly Activity */}
+        <WeeklyActivityChart data={weeklyActivity} />
+
+        {/* Platform Distribution - will span 2 columns on larger screens */}
+        <div className="lg:col-span-2">
+          <PlatformDistributionCharts stats={stats} />
         </div>
       </div>
 
-      {/* Filters */}
-      <Card font="retro">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4" />
-              <span className="text-sm font-medium">Filters:</span>
-            </div>
-            
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(timeRanges).map(([key, range]) => (
-                  <SelectItem key={key} value={key}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedPattern} onValueChange={setSelectedPattern}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Patterns" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Patterns</SelectItem>
-                {data.patternAnalytics.map((pattern) => (
-                  <SelectItem key={pattern.pattern} value={pattern.pattern}>
-                    {pattern.pattern}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center space-x-2">
-              <DatePicker date={startDate || new Date()} onDateChange={setStartDate}
-                placeholder="Start date"
-              />
-              <span className="text-muted-foreground">to</span>
-              <DatePicker date={endDate || new Date()} onDateChange={setEndDate}
-                placeholder="End date"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card font="retro">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                  <Target className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+      {/* Insights Section */}
+      {stats.combined.problemsSolved > 0 && (
+        <div className="bg-card border rounded-lg p-6">
+          <h2 className="retro text-xl font-semibold mb-4">Insights</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Best Platform */}
+            {stats.leetcode.efficiency > 0 && stats.codeforces.efficiency > 0 && (
+              <div className="flex items-start gap-3">
+                <div className="bg-primary/10 rounded-full p-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Completion Rate</p>
-                  <p className="text-2xl font-bold">
-                    {data.overview.totalProblems > 0 ? Math.round((data.overview.problemsSolved / data.overview.totalProblems) * 100) : 0}%
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {data.overview.problemsSolved} / {data.overview.totalProblems} problems
+                  <p className="retro text-sm font-semibold">Best Efficiency</p>
+                  <p className="retro text-xs text-muted-foreground mt-1">
+                    You're most efficient on{' '}
+                    <span className="font-semibold text-foreground">
+                      {stats.leetcode.efficiency < stats.codeforces.efficiency
+                        ? 'LeetCode'
+                        : 'Codeforces'}
+                    </span>{' '}
+                    with{' '}
+                    {Math.min(stats.leetcode.efficiency, stats.codeforces.efficiency).toFixed(2)}{' '}
+                    attempts per problem
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card font="retro">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                  <Clock className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Problems Solved</p>
-                  <p className="text-2xl font-bold">
-                    {data.overview.problemsSolved}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    of {data.overview.totalProblems} total
-                  </p>
-                </div>
+            {/* Total Progress */}
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/10 rounded-full p-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card font="retro">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                  <Flame className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Current Streak</p>
-                  <p className="text-2xl font-bold">{data.overview.currentStreak}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Best: {data.overview.longestStreak} days
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card font="retro">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                  <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total XP</p>
-                  <p className="text-2xl font-bold">
-                    {data.overview.totalXP.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Experience Points</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Charts and Analytics */}
-      <Tabs font="retro" defaultValue="progress" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="progress">Progress Tracking</TabsTrigger>
-          <TabsTrigger value="patterns">Pattern Analysis</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="progress" className="space-y-6">
-          <Card font="retro">
-            <CardHeader>
-              <CardTitle font="retro" className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5" />
-                <span>Progress Over Time</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <LineChart
-                data={data.progressChart}
-                height={400}
-                lines={[
-                  { dataKey: 'problemsSolved', name: 'Problems Solved', stroke: '#3b82f6' },
-                  { dataKey: 'xpGained', name: 'XP Gained', stroke: '#10b981' }
-                ]}
-                xAxisKey="date"
-              />
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card font="retro">
-              <CardHeader>
-                <CardTitle font="retro">Daily Activity Heatmap</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <BarChart
-                  data={data.timeAnalytics}
-                  height={300}
-                  bars={[
-                    { dataKey: 'problemsSolved', name: 'Problems Solved', fill: '#8b5cf6' }
-                  ]}
-                  xAxisKey="hour"
-                />
-              </CardContent>
-            </Card>
-
-            <Card font="retro">
-              <CardHeader>
-                <CardTitle font="retro">Performance Trends</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {data.performanceMetrics.map((metric) => (
-                  <div key={metric.metric} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div>
-                      <p className="font-medium">{metric.metric}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Current: {metric.current} | Previous: {metric.previous}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={metric.trend === 'up' ? 'default' : metric.trend === 'down' ? 'destructive' : 'secondary'}>
-                        {metric.trend === 'up' ? '+' : metric.trend === 'down' ? '-' : '='}{Math.abs(metric.change)}%
-                      </Badge>
-                      {metric.trend === 'up' ? (
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                      ) : metric.trend === 'down' ? (
-                        <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
-                      ) : (
-                        <Activity className="h-4 w-4 text-gray-600" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="patterns" className="space-y-6">
-          {data.patternRadarData && data.patternRadarData.length > 0 ? (
-            <PatternRadar 
-              data={data.patternRadarData}
-              title="Pattern Mastery Analysis"
-              subtitle="Your progress across different algorithmic patterns"
-            />
-          ) : (
-            <Card font="retro">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="retro text-lg font-semibold mb-2">No Pattern Data Available</h3>
-                <p className="text-muted-foreground text-center max-w-md">
-                  Start solving problems to see your pattern mastery analysis. Your progress will be visualized here once you have sufficient data.
+              <div>
+                <p className="retro text-sm font-semibold">Overall Progress</p>
+                <p className="retro text-xs text-muted-foreground mt-1">
+                  You've solved <span className="font-semibold text-foreground">{stats.combined.problemsSolved}</span> unique
+                  problems with{' '}
+                  <span className="font-semibold text-foreground">{stats.combined.submissions}</span> total
+                  submissions
                 </p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+              </div>
+            </div>
 
-        <TabsContent value="performance" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card font="retro">
-              <CardHeader>
-                <CardTitle font="retro">Time Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PieChart
-                  data={data.patternAnalytics.map(p => ({
-                    name: p.pattern,
-                    value: p.averageTime,
-                    fill: `hsl(${Math.random() * 360}, 70%, 50%)`
-                  }))}
-                  dataKey="value"
-                  height={300}
-                />
-              </CardContent>
-            </Card>
+            {/* Active Days */}
+            {contributions.length > 0 && (
+              <div className="flex items-start gap-3">
+                <div className="bg-primary/10 rounded-full p-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="retro text-sm font-semibold">Activity in {selectedYear}</p>
+                  <p className="retro text-xs text-muted-foreground mt-1">
+                    Active on{' '}
+                    <span className="font-semibold text-foreground">
+                      {contributions.filter(day => day.total > 0).length}
+                    </span>{' '}
+                    days with{' '}
+                    <span className="font-semibold text-foreground">
+                      {contributions.reduce((sum, day) => sum + day.total, 0)}
+                    </span>{' '}
+                    total submissions
+                  </p>
+                </div>
+              </div>
+            )}
 
-            <Card font="retro">
-              <CardHeader>
-                <CardTitle font="retro">Completion Rates by Pattern</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <BarChart
-                  data={data.patternAnalytics}
-                  height={300}
-                  bars={[
-                    { dataKey: 'completionRate', name: 'Completion Rate (%)', fill: '#f59e0b' }
-                  ]}
-                  xAxisKey="pattern"
-                />
-              </CardContent>
-            </Card>
+            {/* Most Active Day */}
+            {weeklyActivity.length > 0 && (
+              <div className="flex items-start gap-3">
+                <div className="bg-primary/10 rounded-full p-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="retro text-sm font-semibold">Most Active Day</p>
+                  <p className="retro text-xs text-muted-foreground mt-1">
+                    You're most active on{' '}
+                    <span className="font-semibold text-foreground">
+                      {weeklyActivity.reduce((max, day) => (day.total > max.total ? day : max)).dayOfWeek}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        </TabsContent>
-
-        <TabsContent value="insights" className="space-y-6">
-          {data.predictiveInsightsData ? (
-            <PredictiveInsights 
-              data={data.predictiveInsightsData}
-              title="AI-Powered Predictive Insights"
-              subtitle="Machine learning predictions for your coding journey"
-            />
-          ) : (
-            <Card font="retro">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="retro text-lg font-semibold mb-2">Gathering Insights</h3>
-                <p className="text-muted-foreground text-center max-w-md">
-                  Continue solving problems to unlock AI-powered predictive insights about your learning journey and personalized recommendations.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   )
 }
-
-export default Analytics
