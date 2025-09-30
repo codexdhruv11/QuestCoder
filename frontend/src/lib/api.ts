@@ -427,38 +427,6 @@ export const widgetsAPI = {
   }
 }
 
-// Analytics API endpoints
-export const analyticsAPI = {
-  getOverview: async () => {
-    const response = await api.get('/analytics/overview')
-    return response.data.data
-  },
-  
-  getProgress: async (period?: string, days?: number) => {
-    const response = await api.get('/analytics/progress', {
-      params: { period, days }
-    })
-    return response.data.data
-  },
-  
-  getPatterns: async () => {
-    const response = await api.get('/analytics/patterns')
-    return response.data.data
-  },
-  
-  getPredictions: async () => {
-    const response = await api.get('/analytics/predictions')
-    return response.data.data
-  },
-  
-  getPerformance: async (timeRange?: string) => {
-    const response = await api.get('/analytics/performance', {
-      params: timeRange ? { timeRange } : undefined
-    })
-    return response.data.data
-  }
-}
-
 // Gamification API endpoints
 export const gamificationAPI = {
   getProfile: async () => {
@@ -566,6 +534,67 @@ export const notificationsAPI = {
   
   deleteNotification: async (notificationId: string) => {
     const response = await api.delete(`/notifications/${notificationId}`)
+    return response.data.data
+  }
+}
+
+// Contests API endpoints
+export const contestsAPI = {
+  getContests: async (platform?: string) => {
+    const params = platform ? { platform } : {}
+    const response = await api.get('/contests', { params })
+    return response.data
+  },
+
+  getLeetCodeContests: async () => {
+    const response = await api.get('/contests/leetcode')
+    return response.data
+  },
+
+  getCodeforcesContests: async () => {
+    const response = await api.get('/contests/codeforces')
+    return response.data
+  },
+
+  clearCache: async (platform?: string) => {
+    const params = platform ? { platform } : {}
+    const response = await api.delete('/contests/cache', { params })
+    return response.data
+  },
+
+  checkHealth: async () => {
+    const response = await api.get('/contests/health')
+    return response.data
+  }
+}
+
+// Analytics API endpoints
+export const analyticsAPI = {
+  getYears: async () => {
+    const response = await api.get('/analytics/years')
+    return response.data.data
+  },
+
+  getContributionHistory: async (year?: number) => {
+    const params = year ? { year } : {}
+    const response = await api.get('/analytics/contribution-history', { params })
+    return response.data
+  },
+
+  getStats: async () => {
+    const response = await api.get('/analytics/stats')
+    return response.data.data
+  },
+
+  getWeeklyActivity: async (year?: number) => {
+    const params = year ? { year } : {}
+    const response = await api.get('/analytics/weekly', { params })
+    return response.data.data
+  },
+
+  getMonthlyTrend: async (year?: number) => {
+    const params = year ? { year } : {}
+    const response = await api.get('/analytics/monthly', { params })
     return response.data.data
   }
 }
