@@ -260,26 +260,6 @@ export interface LevelHistory {
 }
 
 // Community types
-export interface StudyGroup {
-  _id: string
-  name: string
-  description: string
-  ownerId: string
-  members: GroupMember[]
-  isPrivate: boolean
-  inviteCode: string
-  targetPatterns: string[]
-  createdAt: string
-  updatedAt: string
-  isActive: boolean
-}
-
-export interface GroupMember {
-  userId: string
-  role: 'owner' | 'admin' | 'member'
-  joinedAt: string
-}
-
 export interface Challenge {
   _id: string
   title: string
@@ -326,53 +306,6 @@ export interface Notification {
   isRead: boolean
   createdAt: string
   expiresAt?: string
-}
-
-// Analytics types
-export interface AnalyticsData {
-  performanceCharts: ChartData[]
-  patternAnalytics: PatternAnalytics[]
-  predictiveInsights: PredictiveInsight[]
-  performanceMetrics: PerformanceMetrics
-}
-
-export interface ChartData {
-  name: string
-  data: any[]
-  type: 'line' | 'bar' | 'pie' | 'radar'
-}
-
-export interface PatternAnalytics {
-  pattern: string
-  mastery: number
-  totalProblems: number
-  solvedProblems: number
-  averageTime: number
-  difficulty: string
-}
-
-export interface PredictiveInsight {
-  type: 'completion' | 'improvement' | 'recommendation'
-  title: string
-  description: string
-  confidence: number
-  estimatedDate?: string
-  suggestedActions?: string[]
-}
-
-export interface PerformanceMetrics {
-  solvingVelocity: number
-  accuracyRate: number
-  improvementTrend: number
-  consistencyScore: number
-  streakData: StreakMetrics
-}
-
-export interface StreakMetrics {
-  current: number
-  longest: number
-  weeklyAverage: number
-  monthlyPattern: number[]
 }
 
 // Leaderboard types
@@ -426,4 +359,81 @@ export interface AppSettings {
   notifications: boolean
   autoRefreshWidgets: boolean
   widgetConfigs: WidgetConfig[]
+}
+
+// Programming Contest types (upcoming contests page)
+export interface ProgrammingContest {
+  name: string
+  url: string
+  start_time: string
+  end_time: string
+  duration: string
+  site: string
+  in_24_hours: string
+  status: string
+}
+
+export interface ProgrammingContestResponse {
+  success: boolean
+  data: ProgrammingContest[]
+  meta: {
+    total: number
+    platform: string
+    lastUpdated: string
+    cached: boolean
+  }
+}
+
+export interface ContestCardProps {
+  contest: ProgrammingContest
+}
+
+export interface ContestFilterProps {
+  activeFilter: string
+  onFilterChange: (filter: string) => void
+}
+
+export interface CountdownTimerProps {
+  targetDate: string
+  onComplete?: () => void
+}
+
+// Analytics types
+export interface PlatformAnalytics {
+  submissions: number
+  problemsSolved: number
+  efficiency: number // submissions per problem
+  difficulty?: {
+    easy?: number
+    medium?: number
+    hard?: number
+  }
+}
+
+export interface AnalyticsStats {
+  leetcode: PlatformAnalytics
+  codeforces: PlatformAnalytics
+  combined: PlatformAnalytics
+}
+
+export interface ContributionDay {
+  date: string // YYYY-MM-DD
+  leetcode: number
+  codeforces: number
+  total: number
+}
+
+export interface WeeklyActivity {
+  dayOfWeek: string
+  leetcode: number
+  codeforces: number
+  total: number
+}
+
+export interface MonthlyData {
+  month: string
+  monthNumber: number
+  leetcode: number
+  codeforces: number
+  total: number
 }
