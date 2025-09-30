@@ -10,7 +10,6 @@ db.createCollection('userProgress');
 db.createCollection('badges');
 db.createCollection('userGamification');
 db.createCollection('notifications');
-db.createCollection('studyGroups');
 db.createCollection('challenges');
 db.createCollection('platformStatuses');
 
