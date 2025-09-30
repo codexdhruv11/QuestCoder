@@ -3,7 +3,6 @@ import { Server as HttpServer } from 'http'
 import jwt from 'jsonwebtoken'
 import { logger } from '@/utils/logger'
 import NotificationService from '@/services/notificationService'
-import StudyGroup from '@/models/StudyGroup'
 import Challenge from '@/models/Challenge'
 import mongoose from 'mongoose'
 
@@ -279,46 +278,6 @@ export function initializeSocket(httpServer: HttpServer): SocketIOServer {
     socket.on('leave_pattern', (patternId: string) => {
       socket.leave(`pattern_${patternId}`)
       logger.info(`User ${username} left pattern room: ${patternId}`)
-    })
-
-    // Handle joining study group rooms with authorization
-    socket.on('join_group', async (groupId: string) => {
-      try {
-        if (!mongoose.Types.ObjectId.isValid(groupId)) {
-          socket.emit('join_group_error', { message: 'Invalid group ID' })
-          return
-        }
-
-        const group = await StudyGroup.findById(groupId).lean()
-        if (!group) {
-          socket.emit('join_group_error', { message: 'Group not found' })
-          return
-        }
-
-        const userObjectId = new mongoose.Types.ObjectId(userId)
-        const isMember = group.ownerId.equals(userObjectId) || 
-                        group.members.some(m => m.userId.equals(userObjectId))
-
-        if (group.isPrivate && !isMember) {
-          socket.emit('join_group_error', { message: 'Access denied to private group' })
-          logger.warn(`User ${username} denied access to private group: ${groupId}`)
-          return
-        }
-
-        socket.join(`group_${groupId}`)
-        socket.emit('join_group_success', { groupId, groupName: group.name })
-        logger.info(`User ${username} joined group room: ${groupId}`)
-
-      } catch (error) {
-        logger.error(`Error joining group ${groupId} for user ${username}:`, error)
-        socket.emit('join_group_error', { message: 'Failed to join group' })
-      }
-    })
-
-    // Handle leaving study group rooms
-    socket.on('leave_group', (groupId: string) => {
-      socket.leave(`group_${groupId}`)
-      logger.info(`User ${username} left group room: ${groupId}`)
     })
 
     // Handle joining challenge rooms with authorization
