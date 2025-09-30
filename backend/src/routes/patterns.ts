@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import { logger } from '@/utils/logger'
 import UserProgress from '@/models/UserProgress'
-import StudyGroup from '@/models/StudyGroup'
 import { authenticate, optionalAuthenticate } from '@/middleware/auth'
 import { PatternService } from '@/services/patternService'
 import GamificationService from '@/services/gamificationService'
@@ -255,14 +254,15 @@ router.post('/:patternId/problems/:problemId/toggle', authenticate, async (req, 
       userProgress.longestStreak = Math.max(userProgress.longestStreak, userProgress.currentStreak)
       userProgress.lastSolvedAt = now
       
-      // Log activity with metadata
+      // Log activity with metadata including platform information
       userProgress.activityLog.push({
         type: 'problem_solved',
         problemId: problemIdStr,
         patternName: pattern.name,
         date: now,
         metadata: {
-          difficulty: problem.difficulty || 'Medium'
+          difficulty: problem.difficulty || 'Medium',
+          platform: problem.platform || 'Unknown'
         }
       })
       
@@ -280,20 +280,9 @@ router.post('/:patternId/problems/:problemId/toggle', authenticate, async (req, 
       // Emit comprehensive real-time events if Socket.IO is available
       if (req.app.locals['socketEvents']) {
         const socketEvents = req.app.locals['socketEvents'] as SocketEvents
-        
-        try {
-          // 1. Add user groups lookup
-          const userGroups = await StudyGroup.find({ 
-            'members.userId': userId, 
-            isActive: true 
-          }).select('_id name members').lean()
-          
-          const formattedGroups = userGroups.map(group => ({
-            groupId: group._id,
-            groupName: group.name
-          }))
 
-          // 2. Emit individual user progress update
+        try {
+          // Emit individual user progress update
           const canonicalPatternId = String(pattern._id || pattern.id || pattern.slug || pattern.name)
           await socketEvents.emitUserProgressUpdate(
             userObjectId,
@@ -302,7 +291,7 @@ router.post('/:patternId/problems/:problemId/toggle', authenticate, async (req, 
             problemIdStr,
             {
               solvedCount: patternProgress.solvedProblems,
-              completionRate: patternProgress.totalProblems > 0 ? 
+              completionRate: patternProgress.totalProblems > 0 ?
                 Math.round((patternProgress.solvedProblems / patternProgress.totalProblems) * 100) : 0,
               streakInfo: {
                 currentStreak: userProgress.currentStreak,
@@ -312,40 +301,13 @@ router.post('/:patternId/problems/:problemId/toggle', authenticate, async (req, 
               patternProgress: {
                 totalProblems: patternProgress.totalProblems,
                 solvedProblems: patternProgress.solvedProblems,
-                completionRate: patternProgress.totalProblems > 0 ? 
+                completionRate: patternProgress.totalProblems > 0 ?
                   Math.round((patternProgress.solvedProblems / patternProgress.totalProblems) * 100) : 0
               }
             }
           )
 
-          // 3. Emit group progress updates
-          if (formattedGroups.length > 0) {
-            const achievements = []
-            if (xpResult.leveledUp) achievements.push(`Reached Level ${xpResult.newLevel}`)
-            if (xpResult.badgesUnlocked.length > 0) {
-              achievements.push(...xpResult.badgesUnlocked.map(b => `Unlocked ${b.badge.name}`))
-            }
-
-            await socketEvents.emitGroupProgressUpdate(
-              userObjectId,
-              req.user!.username,
-              canonicalPatternId,
-              problemIdStr,
-              {
-                problemName: problem.problemName || problem.name,
-                patternName: pattern.name,
-                difficulty: problem.difficulty || 'Medium',
-                platform: problem.platform || 'Other',
-                solvedCount: patternProgress.solvedProblems,
-                completionRate: patternProgress.totalProblems > 0 ? 
-                  Math.round((patternProgress.solvedProblems / patternProgress.totalProblems) * 100) : 0,
-                achievements: achievements.length > 0 ? achievements : undefined
-              },
-              formattedGroups
-            )
-          }
-
-          // 4. Emit existing events (XP, badges, streak)
+          // Emit existing events (XP, badges, streak)
           await socketEvents.emitXpGain(userObjectId, {
             xpGained: xpResult.xpGained,
             totalXp: xpResult.totalXp,
