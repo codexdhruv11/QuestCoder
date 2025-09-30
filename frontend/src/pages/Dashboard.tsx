@@ -11,8 +11,8 @@ import CodeforcesWidget from '@/components/widgets/CodeforcesWidget'
 import GitHubWidget from '@/components/widgets/GitHubWidget'
 import HackerEarthWidget from '@/components/widgets/HackerEarthWidget'
 import StreakTracker from '@/components/widgets/StreakTracker'
-import { analyticsAPI, gamificationAPI } from '@/lib/api'
-import { LayoutDashboard, Target, TrendingUp, Trophy, Zap, BarChart3, Calendar } from 'lucide-react'
+import { gamificationAPI } from '@/lib/api'
+import { LayoutDashboard, Target, TrendingUp, Trophy, Zap, Calendar } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import '@/components/ui/8bit/styles/retro.css'
 
@@ -31,14 +31,20 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const [statsData, gamificationData] = await Promise.all([
-        analyticsAPI.getOverview(),
-        gamificationAPI.getProfile()
-      ])
-      
-      setStats(statsData)
+      const gamificationData = await gamificationAPI.getProfile()
+
+      // Set fallback data for stats (analytics data no longer available)
+      setStats({
+        totalProblems: 0,
+        weeklyGrowth: 0,
+        currentStreak: 0,
+        completedPatterns: 0,
+        totalPatterns: 0,
+        patternCompletionPercentage: 0,
+        monthlyProblems: 0
+      })
       setUserGamification(gamificationData)
-      
+
       // Map unlocked badges to expected BadgeItem shape
       const recentBadges = (gamificationData.unlockedBadges || []).slice(-3).map((b: any) => ({
         id: b._id,
@@ -55,13 +61,13 @@ export default function Dashboard() {
       console.error('Error fetching dashboard data:', error)
       // Set fallback data for demo purposes
       setStats({
-        totalProblems: 245,
-        weeklyGrowth: 12,
-        currentStreak: 7,
-        completedPatterns: 12,
-        totalPatterns: 25,
-        patternCompletionPercentage: 48,
-        monthlyProblems: 23
+        totalProblems: 0,
+        weeklyGrowth: 0,
+        currentStreak: 0,
+        completedPatterns: 0,
+        totalPatterns: 0,
+        patternCompletionPercentage: 0,
+        monthlyProblems: 0
       })
       setUserGamification({
         totalXp: 1250,
@@ -253,7 +259,7 @@ export default function Dashboard() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Link to="/patterns">
           <Card font="retro" className="cursor-pointer hover:bg-accent transition-colors">
             <CardContent className="flex items-center gap-4 p-6">
@@ -261,18 +267,6 @@ export default function Dashboard() {
               <div>
                 <h3 className="font-semibold retro">Continue Learning</h3>
                 <p className="text-sm text-muted-foreground retro">Practice coding patterns</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/analytics">
-          <Card font="retro" className="cursor-pointer hover:bg-accent transition-colors">
-            <CardContent className="flex items-center gap-4 p-6">
-              <BarChart3 className="h-8 w-8 text-primary" />
-              <div>
-                <h3 className="font-semibold retro">View Analytics</h3>
-                <p className="text-sm text-muted-foreground retro">Track your progress</p>
               </div>
             </CardContent>
           </Card>
