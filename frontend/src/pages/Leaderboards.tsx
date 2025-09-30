@@ -56,7 +56,6 @@ interface LeaderboardEntry {
     iconUrl?: string
     rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
   }[]
-  studyGroups?: string[]
   lastActive: Date
 }
 
