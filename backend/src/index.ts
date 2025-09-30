@@ -13,11 +13,13 @@ import authRoutes from '@/routes/auth'
 import userRoutes from '@/routes/users'
 import patternRoutes from '@/routes/patterns'
 import widgetRoutes from '@/routes/widgets'
-import analyticsRoutes from '@/routes/analytics'
 import gamificationRoutes from '@/routes/gamification'
 import communityRoutes from '@/routes/community'
 import notificationRoutes from '@/routes/notifications'
 import adminRoutes from '@/routes/admin'
+import contestRoutes from '@/routes/contests'
+import migrationRoutes from '@/routes/migration'
+import analyticsRoutes from '@/routes/analytics'
 import initializeSocket from '@/socket/index'
 import SocketEvents from '@/socket/events'
 import platformMonitoringJob from '@/jobs/platformMonitoring'
@@ -218,11 +220,13 @@ app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/patterns', patternRoutes)
 app.use('/api/widgets', widgetRoutes)
-app.use('/api/analytics', analyticsRoutes)
 app.use('/api/gamification', gamificationRoutes)
 app.use('/api/community', communityRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/contests', contestRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/migration', migrationRoutes)
+app.use('/api/analytics', analyticsRoutes)
 
 // 404 handler
 app.use('*', (req, res) => {
