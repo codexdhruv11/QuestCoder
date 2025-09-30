@@ -69,36 +69,12 @@ router.get('/badges', async (req: Request, res: Response) => {
 router.get('/leaderboard', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = new mongoose.Types.ObjectId(req.user!._id)
-    const { 
-      type = 'xp', 
-      timeframe = 'all', 
-      limit = '10', 
-      offset = '0',
-      groupId 
+    const {
+      type = 'xp',
+      timeframe = 'all',
+      limit = '10',
+      offset = '0'
     } = req.query
-
-    // Check if requesting group leaderboard
-    if (groupId) {
-      try {
-        const groupLeaderboard = await LeaderboardService.getGroupLeaderboard(
-          new mongoose.Types.ObjectId(groupId as string),
-          { limit: parseInt(limit as string), offset: parseInt(offset as string), timeframe: timeframe as any },
-          userId
-        )
-        res.json({
-          success: true,
-          data: groupLeaderboard
-        })
-        return
-      } catch (error) {
-        logger.error('Error getting group leaderboard:', error)
-        res.status(500).json({
-          success: false,
-          message: 'Failed to get group leaderboard'
-        })
-        return
-      }
-    }
 
     const validTypes = ['xp', 'problems', 'streak']
     if (!validTypes.includes(type as string)) {
