@@ -12,12 +12,12 @@ import {
   LogOut,
   Menu,
   Code2,
-  BarChart3,
   Trophy,
-  Users,
   Zap,
   Bell,
-  Shield
+  Shield,
+  Calendar,
+  BarChart3
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { gamificationAPI } from '@/lib/api'
@@ -28,8 +28,8 @@ const navigation = [
   { name: 'Patterns', href: '/patterns', icon: Target },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Leaderboards', href: '/leaderboards', icon: Trophy },
-  { name: 'Study Groups', href: '/study-groups', icon: Users },
   { name: 'Challenges', href: '/challenges', icon: Zap },
+  { name: 'Contests', href: '/contests', icon: Calendar },
   { name: 'Profile', href: '/profile', icon: User },
 ]
 
