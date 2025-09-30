@@ -470,13 +470,6 @@ export class SocketEvents {
         timestamp: new Date().toISOString()
       })
 
-      // Also emit to any connected dashboard/analytics views
-      this.io.to(`user_analytics_${userId}`).emit('analytics_update', {
-        userId,
-        statsData,
-        timestamp: new Date().toISOString()
-      })
-
       logger.info(`Real-time stats update emitted for user ${userId}: ${statsData.totalProblems} total problems, level ${statsData.currentLevel}`)
 
     } catch (error) {

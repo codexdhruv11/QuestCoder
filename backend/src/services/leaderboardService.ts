@@ -1,7 +1,6 @@
 import mongoose, { PipelineStage } from 'mongoose'
 import UserGamification from '@/models/UserGamification'
 import UserProgress from '@/models/UserProgress'
-import StudyGroup from '@/models/StudyGroup'
 import User from '@/models/User'
 import { logger } from '@/utils/logger'
 
@@ -343,103 +342,6 @@ export class LeaderboardService {
     }
   }
 
-  /**
-   * Get study group leaderboard
-   */
-  static async getGroupLeaderboard(
-    groupId: mongoose.Types.ObjectId,
-    filters: LeaderboardFilters = {},
-    currentUserId?: mongoose.Types.ObjectId
-  ): Promise<LeaderboardResult> {
-    const cacheKey = `group_leaderboard_${groupId}_${JSON.stringify(filters)}`
-    const cached = this.getCachedResult(cacheKey)
-    if (cached) return cached
-
-    try {
-      const { limit = 50, offset = 0, timeframe = 'all' } = filters
-
-      // Get group members
-      const group = await StudyGroup.findById(groupId)
-      if (!group) {
-        return this.getEmptyLeaderboard()
-      }
-
-      const memberIds = group.members.map(member => member.userId)
-
-      let matchStage: any = { userId: { $in: memberIds } }
-      
-      if (timeframe !== 'all') {
-        const timeFilter = this.getTimeframeFilter(timeframe)
-        matchStage.lastXpGainedAt = { $gte: timeFilter }
-      }
-
-      const pipeline: PipelineStage[] = [
-        { $match: matchStage },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'user'
-          }
-        },
-        { $unwind: '$user' },
-        { $sort: { totalXp: -1, lastXpGainedAt: -1 } },
-        {
-          $project: {
-            userId: 1,
-            totalXp: 1,
-            currentLevel: 1,
-            lastXpGainedAt: 1,
-            'user.username': 1,
-            'user._id': 1
-          }
-        }
-      ]
-
-      const entries = await UserGamification.aggregate([
-        ...pipeline,
-        { $skip: offset },
-        { $limit: limit }
-      ])
-
-      const leaderboardEntries: LeaderboardEntry[] = entries.map((entry, index) => ({
-        user: {
-          _id: entry.user._id.toString(),
-          username: entry.user.username
-        },
-        rank: offset + index + 1,
-        score: entry.totalXp,
-        metadata: {
-          level: entry.currentLevel,
-          lastActive: entry.lastXpGainedAt
-        }
-      }))
-
-      // Find current user's rank if provided
-      let currentUserRank: number | undefined
-      if (currentUserId && memberIds.some(id => id.equals(currentUserId))) {
-        const allEntries = await UserGamification.aggregate(pipeline)
-        currentUserRank = allEntries.findIndex(entry => entry.userId.equals(currentUserId)) + 1
-        if (currentUserRank === 0) currentUserRank = undefined
-      }
-
-      const result: LeaderboardResult = {
-        entries: leaderboardEntries,
-        totalEntries: memberIds.length,
-        currentUserRank,
-        groupName: group.name,
-        lastUpdated: new Date()
-      }
-
-      this.setCachedResult(cacheKey, result)
-      return result
-
-    } catch (error) {
-      logger.error('Error getting group leaderboard:', error)
-      return this.getEmptyLeaderboard()
-    }
-  }
 
   /**
    * Find user's rank in a specific leaderboard

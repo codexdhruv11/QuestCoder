@@ -16,8 +16,8 @@ const Profile = lazy(() => import('@/pages/Profile'))
 const Patterns = lazy(() => import('@/pages/Patterns'))
 const Analytics = lazy(() => import('@/pages/Analytics'))
 const Leaderboards = lazy(() => import('@/pages/Leaderboards'))
-const StudyGroups = lazy(() => import('@/pages/StudyGroups'))
 const Challenges = lazy(() => import('@/pages/Challenges'))
+const Contests = lazy(() => import('@/pages/Contests'))
 const Admin = lazy(() => import('@/pages/Admin'))
 
 function App() {
@@ -45,14 +45,14 @@ function App() {
                       <Patterns />
                     </Suspense>
                   } />
-                  <Route path="profile" element={
-                    <Suspense fallback={<Loading text="Loading profile..." />}>
-                      <Profile />
-                    </Suspense>
-                  } />
                   <Route path="analytics" element={
                     <Suspense fallback={<Loading text="Loading analytics..." />}>
                       <Analytics />
+                    </Suspense>
+                  } />
+                  <Route path="profile" element={
+                    <Suspense fallback={<Loading text="Loading profile..." />}>
+                      <Profile />
                     </Suspense>
                   } />
                   <Route path="leaderboards" element={
@@ -60,14 +60,14 @@ function App() {
                       <Leaderboards />
                     </Suspense>
                   } />
-                  <Route path="study-groups" element={
-                    <Suspense fallback={<Loading text="Loading study groups..." />}>
-                      <StudyGroups />
-                    </Suspense>
-                  } />
                   <Route path="challenges" element={
                     <Suspense fallback={<Loading text="Loading challenges..." />}>
                       <Challenges />
+                    </Suspense>
+                  } />
+                  <Route path="contests" element={
+                    <Suspense fallback={<Loading text="Loading contests..." />}>
+                      <Contests />
                     </Suspense>
                   } />
                   <Route path="admin" element={
